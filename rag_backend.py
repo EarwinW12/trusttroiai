@@ -1,6 +1,6 @@
-
 """
-RAG Backend - VOLLSTÄNDIGE VERSION MIT ALLEN DOKUMENTEN
+RAG Backend - VOLLSTÄNDIGE VERSION MIT TRIPLE PIPELINE
+TrustTroiAI - KI-VO & DSGVO Compliance Assistant
 """
 
 import warnings
@@ -17,9 +17,9 @@ from langchain_text_splitters import MarkdownHeaderTextSplitter
 from langchain_core.documents import Document
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_mistralai import MistralAIEmbeddings, ChatMistralAI
-from langchain.memory import ConversationBufferWindowMemory
-from langchain.chains import ConversationalRetrievalChain  
+from langchain.chains import ConversationalRetrievalChain
 from langchain_core.prompts import PromptTemplate
+from langchain.memory import ConversationBufferWindowMemory
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams
@@ -54,13 +54,13 @@ class AdvancedQueryRouter:
     def __init__(self, defined_terms_ki_vo: List[str], defined_terms_dsgvo: List[str]):
         self.defined_terms_ki_vo = [t.lower() for t in defined_terms_ki_vo]
         self.defined_terms_dsgvo = [t.lower() for t in defined_terms_dsgvo]
-
+        
         self.definition_keywords = [
             'definiert', 'definition', 'begriff', 'bedeutung', 'bedeutet',
             'meint', 'versteht man unter', 'bezeichnet', 'ist gemeint',
             'was ist', 'was sind', 'erklärung', 'erkläre',
         ]
-
+        
         self.keyword_patterns = {
             'artikel': [r'artikel\s+(\d+)', r'art\.?\s*(\d+)'],
             'kapitel': [r'kapitel\s+([ivxIVX]+)', r'kapitel\s+(\d+)'],
@@ -75,19 +75,19 @@ class AdvancedQueryRouter:
                 r'recital\s+(\d+)',
             ],
         }
-
+    
     def analyze_query(self, query: str) -> QueryAnalysis:
         query_lower = query.lower()
-
+        
         # Definition-Query?
         is_definition_query = any(kw in query_lower for kw in self.definition_keywords)
-
+        
         if is_definition_query:
             extracted_term = self._extract_term(query)
-
+            
             if extracted_term:
                 detected_law = self._detect_law(query)
-
+                
                 if self._term_in_list(extracted_term, self.defined_terms_ki_vo):
                     return QueryAnalysis(
                         pipeline_type=PipelineType.DEFINITIONS_KI_VO,
@@ -95,7 +95,7 @@ class AdvancedQueryRouter:
                         detected_patterns=[f"def_{extracted_term}"],
                         extracted_references={'term': extracted_term, 'law': 'KI-Verordnung'}
                     )
-
+                
                 elif self._term_in_list(extracted_term, self.defined_terms_dsgvo):
                     return QueryAnalysis(
                         pipeline_type=PipelineType.DEFINITIONS_DSGVO,
@@ -103,7 +103,7 @@ class AdvancedQueryRouter:
                         detected_patterns=[f"def_{extracted_term}"],
                         extracted_references={'term': extracted_term, 'law': 'DSGVO'}
                     )
-
+                
                 elif detected_law:
                     if detected_law == 'KI-Verordnung':
                         return QueryAnalysis(
@@ -119,7 +119,7 @@ class AdvancedQueryRouter:
                             detected_patterns=[f"def_{extracted_term}"],
                             extracted_references={'term': extracted_term, 'law': 'DSGVO'}
                         )
-
+                
                 else:
                     return QueryAnalysis(
                         pipeline_type=PipelineType.DEFINITIONS_GENERIC,
@@ -127,11 +127,11 @@ class AdvancedQueryRouter:
                         detected_patterns=[f"def_{extracted_term}"],
                         extracted_references={'term': extracted_term, 'law': None}
                     )
-
+        
         # Keyword/Metadata?
         detected_patterns = []
         extracted_references = {}
-
+        
         for pattern_type, patterns in self.keyword_patterns.items():
             for pattern in patterns:
                 matches = re.finditer(pattern, query_lower, re.IGNORECASE)
@@ -139,12 +139,12 @@ class AdvancedQueryRouter:
                     reference = match.group(1)
                     if pattern_type in ['anhang', 'kapitel']:
                         reference = self._normalize_number(reference)
-
+                    
                     detected_patterns.append(f"{pattern_type}_{reference}")
                     if pattern_type not in extracted_references:
                         extracted_references[pattern_type] = []
                     extracted_references[pattern_type].append(reference)
-
+        
         if detected_patterns:
             return QueryAnalysis(
                 pipeline_type=PipelineType.KEYWORD_METADATA,
@@ -152,33 +152,33 @@ class AdvancedQueryRouter:
                 detected_patterns=detected_patterns,
                 extracted_references=extracted_references
             )
-
+        
         return QueryAnalysis(
             pipeline_type=PipelineType.SEMANTIC,
             confidence=0.8,
             detected_patterns=['semantic'],
             extracted_references={}
         )
-
+    
     def _extract_term(self, query: str) -> Optional[str]:
         query_lower = query.lower()
         query_clean = re.sub(r'\b(?:laut|gemäß|nach|der|des)\s+(?:ki-verordnung|ki-vo|dsgvo|art\.?\s*\d+)\b', '', query_lower)
         query_clean = re.sub(r'\b(?:ki-verordnung|ki-vo|dsgvo)\b', '', query_clean)
-
+        
         match = re.search(r'wie\s+(?:wird|werden)\s+(.+?)\s+(?:definiert|bezeichnet)', query_clean)
         if match:
             return self._clean_term(match.group(1))
-
+        
         match = re.search(r'was\s+(?:bedeutet|ist|sind)\s+(?:ein|eine|der|die|das)?\s*(.+?)(?:\?|$)', query_clean)
         if match:
             return self._clean_term(match.group(1))
-
+        
         match = re.search(r'definition\s+(?:von|für|des|der)\s+(.+?)(?:\?|$)', query_clean)
         if match:
             return self._clean_term(match.group(1))
-
+        
         return None
-
+    
     def _detect_law(self, query: str) -> Optional[str]:
         query_lower = query.lower()
         if 'ki-verordnung' in query_lower or 'ki-vo' in query_lower:
@@ -186,19 +186,19 @@ class AdvancedQueryRouter:
         elif 'dsgvo' in query_lower:
             return 'DSGVO'
         return None
-
+    
     def _clean_term(self, term: str) -> str:
         term = re.sub(r'[?.,!]', '', term)
         term = re.sub(r'^(?:ein|eine|der|die|das|den|dem|laut|gemäß|nach)\s+', '', term)
         term = re.sub(r'\s+(?:laut|gemäß|nach|der|des)$', '', term)
         return term.strip()
-
+    
     def _term_in_list(self, term: str, term_list: List[str]) -> bool:
         term_clean = term.lower().strip()
-
+        
         if term_clean in term_list:
             return True
-
+        
         term_variants = [
             term_clean,
             term_clean.replace('-', ' '),
@@ -206,18 +206,18 @@ class AdvancedQueryRouter:
             term_clean.replace('-', ''),
             term_clean.replace(' ', ''),
         ]
-
+        
         for variant in term_variants:
             if variant in term_list:
                 return True
-
+        
         if len(term_clean) >= 4:
             for defined_term in term_list:
                 if term_clean in defined_term or (defined_term in term_clean and len(defined_term) >= 4):
                     return True
-
+        
         return False
-
+    
     def _normalize_number(self, num_str: str) -> str:
         roman_to_arabic = {
             'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5',
@@ -235,7 +235,7 @@ class KeywordMetadataRetriever:
         self.vectorstore = vectorstore
         self.all_chunks = all_chunks
         self.metadata_index = self._build_metadata_index()
-
+    
     def _build_metadata_index(self) -> Dict[str, Dict[str, List[Document]]]:
         index = {
             'artikel': {},
@@ -261,12 +261,11 @@ class KeywordMetadataRetriever:
             
             # Index für Erwägungsgründe
             if 'erwägung' in source_type:
-                # Versuche EWG-Nummer aus Content zu extrahieren
                 ewg_patterns = [
                     r'erwägungsgrund\s+(\d+)',
                     r'ewg\s+(\d+)',
-                    r'\((\d+)\)',  # Nummer in Klammern
-                    r'^(\d+)\.',   # Nummer am Anfang mit Punkt
+                    r'\((\d+)\)',
+                    r'^(\d+)\.',
                 ]
                 
                 for pattern in ewg_patterns:
@@ -279,10 +278,10 @@ class KeywordMetadataRetriever:
                         break
         
         return index
-
+    
     def retrieve_by_metadata(self, extracted_references: Dict[str, Any], k: int = 5) -> List[Document]:
         results = []
-    
+        
         # Artikel suchen
         if 'artikel' in extracted_references:
             for artikel_num in extracted_references['artikel']:
@@ -294,19 +293,10 @@ class KeywordMetadataRetriever:
             for ewg_num in extracted_references['erwägungsgrund']:
                 if str(ewg_num) in self.metadata_index['erwägungsgrund']:
                     results.extend(self.metadata_index['erwägungsgrund'][str(ewg_num)])
-                else:
-                    # Fallback: Semantische Suche
-                    ewg_query = f"Erwägungsgrund {ewg_num}"
-                    semantic_results = self.vectorstore.similarity_search(
-                        ewg_query, 
-                        k=3,
-                        filter={'source_type': 'Erwägungsgründe'} if hasattr(self.vectorstore, 'filter') else None
-                    )
-                    results.extend(semantic_results)
-
+        
         unique_results = []
         seen = set()
-
+        
         for doc in results:
             h = hash(doc.page_content[:100])
             if h not in seen:
@@ -314,7 +304,7 @@ class KeywordMetadataRetriever:
                 seen.add(h)
                 if len(unique_results) >= k:
                     break
-
+        
         return unique_results
 
 
@@ -330,94 +320,94 @@ class DefinitionsRetriever:
         self.all_chunks = all_chunks
         self.embeddings = embeddings
         self.definitions_index = self._build_index()
-
+    
     def _build_index(self) -> Dict[str, List[Document]]:
         index = {}
         definition_chunks = [
-            c for c in self.all_chunks
+            c for c in self.all_chunks 
             if c.metadata.get('source_type') == 'Begriffsbestimmungen'
         ]
-
+        
         for chunk in definition_chunks:
             match = re.search(r'###\s*(\d+)\.\s*([^\n]+)', chunk.page_content)
-
+            
             if match:
                 term_raw = match.group(2).strip()
                 term_clean = term_raw.strip('"\'„""')
                 term_lower = term_clean.lower()
                 variants = self._generate_variants(term_lower)
-
+                
                 for variant in variants:
                     if variant not in index:
                         index[variant] = []
                     if chunk not in index[variant]:
                         index[variant].append(chunk)
-
+        
         return index
-
+    
     def _generate_variants(self, term: str) -> List[str]:
         variants = set()
         variants.add(term)
-
+        
         if '-' in term:
             variants.add(term.replace('-', ' '))
             variants.add(term.replace('-', ''))
-
+        
         if ' ' in term:
             variants.add(term.replace(' ', '-'))
             variants.add(term.replace(' ', ''))
-
+        
         term_stripped = term.rstrip('.,;:')
         if term_stripped != term:
             variants.add(term_stripped)
-
+        
         return list(variants)
-
+    
     def retrieve_definition(self, term: str, law: Optional[str] = None, k: int = 2) -> List[Document]:
         search_variants = self._generate_variants(term.lower())
-
+        
         found_docs = []
-
+        
         for variant in search_variants:
             if variant in self.definitions_index:
                 docs = self.definitions_index[variant]
-
+                
                 if law:
                     docs = [d for d in docs if d.metadata.get('source_law') == law]
-
+                
                 found_docs.extend(docs)
                 break
-
+        
         if not found_docs:
             found_docs = self._fuzzy_search_in_index(term.lower(), law)
-
+        
         unique_docs = []
         seen_hashes = set()
-
+        
         for doc in found_docs:
             doc_hash = hash(doc.page_content[:200])
             if doc_hash not in seen_hashes:
                 unique_docs.append(doc)
                 seen_hashes.add(doc_hash)
-
+        
         if unique_docs:
             return unique_docs[:k]
-
+        
         return []
-
+    
     def _fuzzy_search_in_index(self, term: str, law: Optional[str]) -> List[Document]:
         term_clean = term.lower().strip()
         found_docs = []
-
+        
         for index_key, docs in self.definitions_index.items():
             if term_clean in index_key or index_key in term_clean:
                 if len(term_clean) >= 4 and len(index_key) >= 4:
                     if law:
                         docs = [d for d in docs if d.metadata.get('source_law') == law]
-
+                    
                     found_docs.extend(docs)
                     break
-
+        
         return found_docs
 
 
@@ -445,68 +435,85 @@ class TriplePipelineManager:
         self.router = advanced_router
         self.keyword_retriever = keyword_retriever
         self.definitions_retriever = definitions_retriever
-
+    
     def process_query(self, query: str, filter_law: Optional[str] = None) -> Dict[str, Any]:
         needs_context = self._needs_conversation_context(query)
-
+        
         if needs_context:
             return self._handle_semantic(query, filter_law)
-
+        
         analysis = self.router.analyze_query(query)
-
+        
         if analysis.pipeline_type in [
             PipelineType.DEFINITIONS_KI_VO,
             PipelineType.DEFINITIONS_DSGVO,
             PipelineType.DEFINITIONS_GENERIC
         ]:
             return self._handle_definitions(query, analysis)
-
+        
         elif analysis.pipeline_type == PipelineType.KEYWORD_METADATA:
             return self._handle_keyword_metadata(query, analysis, filter_law)
-
+        
         else:
             return self._handle_semantic(query, filter_law)
-
+    
     def _needs_conversation_context(self, query: str) -> bool:
         query_lower = query.lower()
-
+        
         context_indicators = [
             'das', 'dies', 'diese', 'dieser', 'unterschied', 'vergleich',
             'auch', 'zusätzlich', 'und was', 'wie ist',
         ]
-
+        
         has_indicator = any(indicator in query_lower for indicator in context_indicators)
         word_count = len(query.split())
         is_short = word_count < 5
         has_history = len(self.qa_chain.memory.chat_memory.messages) > 0
-
+        
         return (has_indicator or is_short) and has_history
-
+    
     def _handle_definitions(self, query: str, analysis: QueryAnalysis) -> Dict[str, Any]:
         term = analysis.extracted_references.get('term')
         law = analysis.extracted_references.get('law')
-
+        
         docs = self.definitions_retriever.retrieve_definition(term, law, k=2)
-
+        
         if not docs:
             return self._handle_semantic(query, law)
-
+        
         context = "\n\n".join([
             f"📖 DEFINITION aus {doc.metadata.get('source_law')} {doc.metadata.get('artikel')}:\n{doc.page_content}"
             for doc in docs
         ])
-
+        
         chat_history = self._get_chat_history_text()
+        
+        prompt = f"""Du bist Rechtsexperte. Beantworte Definitionsfragen wie folgt:
 
-        prompt = f"""Du bist Rechtsexperte. Beantworte die Frage PRÄZISE.
+1. **ZITAT der offiziellen Definition**:
+   - Exakter Wortlaut in Anführungszeichen
+   - Quelle angeben (z.B. "KI-VO Art. 3 Nr. 1")
 
-WICHTIGE REGELN:
-1. **PRÜFE ZUERST:** Ist die Definition im bereitgestellten Kontext?
-   - ✅ JA → Gib die offizielle Definition wieder
-   - ❌ NEIN → Sage: "Diese Definition finde ich in den bereitgestellten Begriffsbestimmungen nicht."
+2. **KURZE ERKLÄRUNG**:
+   - 1-2 Sätze zur praktischen Bedeutung
+   - Keine ausführliche Interpretation
 
-2. Nenne die Quelle (z.B. "KI-VO Art. 3 Nr. 1")
-3. KEINE Spekulationen oder zusätzliche Erklärungen außerhalb des Kontexts
+3. **WEITERFÜHRENDE FRAGE**:
+   - Eine Folgefrage zum Thema
+
+BEISPIEL:
+
+**Definition (KI-VO Art. 3 Nr. 5):**
+"'Betreiber' bezeichnet eine natürliche oder juristische Person, Behörde, Einrichtung oder sonstige Stelle, die ein KI-System unter ihrer Autorität nutzt..."
+
+**Bedeutung:**
+Der Betreiber ist also die Instanz die das KI-System tatsächlich einsetzt, im Gegensatz zum Anbieter der es entwickelt hat.
+
+**Möchten Sie wissen welche Pflichten Betreiber haben?**
+
+WICHTIG:
+- KEIN erfundener Text
+- Wenn Definition nicht im Kontext → Sage das ehrlich
 
 {chat_history}
 
@@ -515,17 +522,17 @@ BEGRIFFSDEFINITIONEN:
 
 AKTUELLE FRAGE: {query}
 
-ANTWORT (kurz und präzise):"""
-
+ANTWORT:"""
+        
         response = self.llm.invoke(prompt)
         self._save_to_memory(query, response.content)
-
+        
         return {
             'result': response.content,
             'source_documents': docs,
             'pipeline_used': f'definitions_{analysis.pipeline_type.value}'
         }
-
+    
     def _handle_keyword_metadata(self, query: str, analysis: QueryAnalysis, filter_law: Optional[str]) -> Dict[str, Any]:
         docs = self.keyword_retriever.retrieve_by_metadata(
             analysis.extracted_references,
@@ -545,75 +552,101 @@ ANTWORT (kurz und präzise):"""
         if 'erwägungsgrund' in analysis.extracted_references:
             ewg_nums = ', '.join(map(str, analysis.extracted_references['erwägungsgrund']))
             prompt = f"""{chat_history}
-    
-    ERWÄGUNGSGRUND-SUCHE:
-    Der User fragt nach Erwägungsgrund(en): {ewg_nums}
-    
-    GEFUNDENER KONTEXT:
-    {context}
-    
-    WICHTIG:
-    1. Wenn der exakte Erwägungsgrund im Kontext ist → Fasse ihn zusammen
-    2. Wenn nur verwandte Erwägungsgründe da sind → Erkläre was gefunden wurde
-    3. Wenn gar nichts passt → Sage ehrlich: "Erwägungsgrund {ewg_nums} finde ich in den Dokumenten nicht explizit."
-    
-    AKTUELLE FRAGE: {query}
-    
-    ANTWORT:"""
-        else:
-            # Standard Prompt für Artikel etc.
-            prompt = f"""{chat_history}
-    
-    KONTEXT:
-    {context}
-    
-    AKTUELLE FRAGE: {query}
-    
-    ANTWORT:"""
 
+ERWÄGUNGSGRUND-SUCHE:
+Der User fragt nach Erwägungsgrund(en): {ewg_nums}
+
+GEFUNDENER KONTEXT:
+{context}
+
+ANTWORTFORMAT:
+
+1. **ZITAT (falls vorhanden)**:
+   - Exakter Wortlaut des Erwägungsgrundes in Anführungszeichen
+   - Quelle angeben
+
+2. **KURZE ERKLÄRUNG**:
+   - 2-3 Sätze zur Bedeutung/Einordnung
+
+3. **PRIMÄRQUELLEN**:
+   - Liste relevante Erwägungsgründe
+
+4. **WEITERFÜHRENDE FRAGE**
+
+WICHTIG:
+- Wenn exakter EWG im Kontext → Zitiere ihn
+- Wenn nur verwandte EWG da sind → Erkläre was gefunden wurde
+- Wenn gar nichts passt → Sage ehrlich: "Erwägungsgrund {ewg_nums} finde ich in den Dokumenten nicht explizit."
+
+AKTUELLE FRAGE: {query}
+
+ANTWORT:"""
+        else:
+            prompt = f"""{chat_history}
+
+KONTEXT:
+{context}
+
+ANTWORTFORMAT:
+
+1. **ZITAT (falls vorhanden)**:
+   - Relevante Textpassage in Anführungszeichen
+   - Quelle angeben
+
+2. **KURZE ERKLÄRUNG**:
+   - 2-3 Sätze zur Bedeutung
+
+3. **PRIMÄRQUELLEN**
+
+4. **WEITERFÜHRENDE FRAGE**
+
+AKTUELLE FRAGE: {query}
+
+ANTWORT:"""
+        
         response = self.llm.invoke(prompt)
         self._save_to_memory(query, response.content)
-
+        
         return {
             'result': response.content,
             'source_documents': docs,
             'pipeline_used': 'keyword_metadata'
         }
-
+    
     def _handle_semantic(self, query: str, filter_law: Optional[str]) -> Dict[str, Any]:
         result = self.qa_chain({"question": query})
-
+        
         return {
             'result': result['answer'],
             'source_documents': result.get('source_documents', []),
             'pipeline_used': 'semantic_with_memory'
         }
-
+    
     def _get_chat_history_text(self) -> str:
         messages = self.qa_chain.memory.chat_memory.messages
-
+        
         if not messages:
             return ""
-
+        
         history_lines = []
         for msg in messages[-6:]:
             if msg.type == "human":
                 history_lines.append(f"User: {msg.content}")
             else:
                 history_lines.append(f"Assistant: {msg.content}")
-
+        
         if history_lines:
             return "BISHERIGE KONVERSATION:\n" + "\n".join(history_lines) + "\n"
-
+        
         return ""
-
+    
     def _save_to_memory(self, query: str, response: str):
         self.qa_chain.memory.chat_memory.add_message(HumanMessage(content=query))
         self.qa_chain.memory.chat_memory.add_message(AIMessage(content=response))
-
+    
     def clear_memory(self):
         self.qa_chain.memory.clear()
-
+    
     def get_memory_stats(self) -> Dict[str, Any]:
         messages = self.qa_chain.memory.chat_memory.messages
         return {
@@ -630,56 +663,56 @@ class RAGBackend:
     def __init__(self, mistral_api_key: str):
         self.mistral_api_key = mistral_api_key
         self.initialized = False
-
+        
         self.vectorstore = None
         self.qdrant_client = None
         self.embeddings = None
         self.llm = None
         self.triple_pipeline = None
         self.all_chunks = []
-
+        
         self.COLLECTION_NAME = "legal_compliance_v3"
-
+    
     def setup(self, document_paths: Dict[str, str]):
         print("\n" + "="*70)
         print("🔧 VOLLSTÄNDIGES SETUP MIT TRIPLE PIPELINE")
         print("="*70)
-
+        
         try:
             # 1. ALLE Dokumente laden
             print("\n📚 LADE ALLE DOKUMENTE...")
             self.all_chunks = self._load_all_documents(document_paths)
-
+            
             if not self.all_chunks:
                 raise ValueError("Keine Chunks erstellt!")
-
+            
             print(f"\n✅ GESAMT: {len(self.all_chunks)} Chunks")
-
+            
             # 2. Models
             print("\n🤖 INITIALISIERE MODELS...")
             self._initialize_models()
-
+            
             # 3. Vectorstore
             print("\n💾 ERSTELLE VECTORSTORE...")
             self._create_vectorstore()
-
+            
             # 4. Triple Pipeline
             print("\n🔧 ERSTELLE TRIPLE PIPELINE...")
             self._create_triple_pipeline()
-
+            
             self.initialized = True
             print("\n✅ VOLLSTÄNDIGES SETUP ABGESCHLOSSEN!")
             print("   🔵 Pipeline 1: Semantic Search")
             print("   🟢 Pipeline 2: Keyword/Metadata")
             print("   🟡 Pipeline 3: Definitions")
-
+            
         except Exception as e:
             print(f"\n❌ FEHLER: {e}")
             raise
-
+    
     def _load_all_documents(self, paths: Dict[str, str]) -> List[Document]:
         all_chunks = []
-
+        
         # KI-VO Corpus
         try:
             print("\n🔵 KI-VERORDNUNG:")
@@ -689,16 +722,16 @@ class RAGBackend:
             headers = [("#", "Kapitel"), ("##", "Abschnitt"), ("###", "Artikel")]
             splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers, strip_headers=False)
             chunks = splitter.split_text(pages[0].page_content)
-
+            
             for chunk in chunks:
                 chunk.metadata['source_type'] = 'Corpus'
                 chunk.metadata['source_law'] = 'KI-Verordnung'
-
+            
             all_chunks.extend(chunks)
             print(f"      ✅ {len(chunks)} Chunks")
         except Exception as e:
             print(f"      ❌ Fehler: {e}")
-
+        
         # KI-VO Anhänge
         try:
             print("   2/7 Anhänge...")
@@ -707,16 +740,16 @@ class RAGBackend:
             headers = [("#", "Anhang"), ("##", "Abschnitt")]
             splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers, strip_headers=False)
             chunks = splitter.split_text(pages[0].page_content)
-
+            
             for chunk in chunks:
                 chunk.metadata['source_type'] = 'Anhang'
                 chunk.metadata['source_law'] = 'KI-Verordnung'
-
+            
             all_chunks.extend(chunks)
             print(f"      ✅ {len(chunks)} Chunks")
         except Exception as e:
             print(f"      ❌ Fehler: {e}")
-
+        
         # KI-VO EWG
         try:
             print("   3/7 Erwägungsgründe...")
@@ -725,16 +758,16 @@ class RAGBackend:
             headers = [("#", "Erwägungsgrund")]
             splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers, strip_headers=False)
             chunks = splitter.split_text(pages[0].page_content)
-
+            
             for chunk in chunks:
                 chunk.metadata['source_type'] = 'Erwägungsgründe'
                 chunk.metadata['source_law'] = 'KI-Verordnung'
-
+            
             all_chunks.extend(chunks)
             print(f"      ✅ {len(chunks)} Chunks")
         except Exception as e:
             print(f"      ❌ Fehler: {e}")
-
+        
         # KI-VO Begriffe
         try:
             print("   4/7 Begriffsbestimmungen...")
@@ -743,17 +776,17 @@ class RAGBackend:
             headers = [("###", "Begriff")]
             splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers, strip_headers=False)
             chunks = splitter.split_text(pages[0].page_content)
-
+            
             for chunk in chunks:
                 chunk.metadata['source_type'] = 'Begriffsbestimmungen'
                 chunk.metadata['source_law'] = 'KI-Verordnung'
                 chunk.metadata['artikel'] = 'Artikel 3'
-
+            
             all_chunks.extend(chunks)
             print(f"      ✅ {len(chunks)} Chunks")
         except Exception as e:
             print(f"      ❌ Fehler: {e}")
-
+        
         # DSGVO Corpus
         try:
             print("\n🟢 DSGVO:")
@@ -763,16 +796,16 @@ class RAGBackend:
             headers = [("#", "Kapitel"), ("##", "Abschnitt"), ("###", "Artikel")]
             splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers, strip_headers=False)
             chunks = splitter.split_text(pages[0].page_content)
-
+            
             for chunk in chunks:
                 chunk.metadata['source_type'] = 'Corpus'
                 chunk.metadata['source_law'] = 'DSGVO'
-
+            
             all_chunks.extend(chunks)
             print(f"      ✅ {len(chunks)} Chunks")
         except Exception as e:
             print(f"      ❌ Fehler: {e}")
-
+        
         # DSGVO EWG
         try:
             print("   6/7 Erwägungsgründe...")
@@ -781,16 +814,16 @@ class RAGBackend:
             headers = [("#", "Erwägungsgrund")]
             splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers, strip_headers=False)
             chunks = splitter.split_text(pages[0].page_content)
-
+            
             for chunk in chunks:
                 chunk.metadata['source_type'] = 'Erwägungsgründe'
                 chunk.metadata['source_law'] = 'DSGVO'
-
+            
             all_chunks.extend(chunks)
             print(f"      ✅ {len(chunks)} Chunks")
         except Exception as e:
             print(f"      ❌ Fehler: {e}")
-
+        
         # DSGVO Begriffe
         try:
             print("   7/7 Begriffsbestimmungen...")
@@ -799,60 +832,59 @@ class RAGBackend:
             headers = [("###", "Begriff")]
             splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers, strip_headers=False)
             chunks = splitter.split_text(pages[0].page_content)
-
+            
             for chunk in chunks:
                 chunk.metadata['source_type'] = 'Begriffsbestimmungen'
                 chunk.metadata['source_law'] = 'DSGVO'
                 chunk.metadata['artikel'] = 'Artikel 4'
-
+            
             all_chunks.extend(chunks)
             print(f"      ✅ {len(chunks)} Chunks")
         except Exception as e:
             print(f"      ❌ Fehler: {e}")
-
+        
         return all_chunks
-
+    
     def _initialize_models(self):
         self.embeddings = MistralAIEmbeddings(
             model="mistral-embed",
             mistral_api_key=self.mistral_api_key
         )
-
+        
         self.llm = ChatMistralAI(
-            model="mistral-large-latest",
+            model="mistral-small-latest",
             temperature=0,
             mistral_api_key=self.mistral_api_key,
             timeout=120,
-
         )
-
+        
         print("   ✅ Models bereit")
-
+    
     def _create_vectorstore(self):
         if not self.all_chunks:
             raise ValueError("all_chunks ist leer!")
-
+        
         self.qdrant_client = QdrantClient(":memory:")
-
+        
         self.qdrant_client.create_collection(
             collection_name=self.COLLECTION_NAME,
             vectors_config=VectorParams(size=1024, distance=Distance.COSINE)
         )
-
+        
         print(f"   📥 Indexiere {len(self.all_chunks)} Chunks...")
-
+        
         start_time = time.time()
-
+        
         self.vectorstore = Qdrant.from_documents(
             self.all_chunks,
             self.embeddings,
             location=":memory:",
             collection_name=self.COLLECTION_NAME
         )
-
+        
         elapsed = time.time() - start_time
         print(f"   ✅ Indexierung in {elapsed:.1f}s")
-
+    
     def _create_triple_pipeline(self):
         # Extrahiere Begriffe
         def extract_defined_terms(chunks: List[Document]) -> List[str]:
@@ -865,18 +897,18 @@ class RAGBackend:
                     term = term.lower()
                     terms.append(term)
             return sorted(list(set(terms)))
-
-        defs_ki_vo = [c for c in self.all_chunks if c.metadata.get('source_law') == 'KI-Verordnung'
+        
+        defs_ki_vo = [c for c in self.all_chunks if c.metadata.get('source_law') == 'KI-Verordnung' 
                       and c.metadata.get('source_type') == 'Begriffsbestimmungen']
-        defs_dsgvo = [c for c in self.all_chunks if c.metadata.get('source_law') == 'DSGVO'
+        defs_dsgvo = [c for c in self.all_chunks if c.metadata.get('source_law') == 'DSGVO' 
                       and c.metadata.get('source_type') == 'Begriffsbestimmungen']
-
+        
         DEFINED_TERMS_KI_VO = extract_defined_terms(defs_ki_vo)
         DEFINED_TERMS_DSGVO = extract_defined_terms(defs_dsgvo)
-
+        
         print(f"   🔵 KI-VO: {len(DEFINED_TERMS_KI_VO)} Begriffe")
         print(f"   🟢 DSGVO: {len(DEFINED_TERMS_DSGVO)} Begriffe")
-
+        
         # Memory
         conversation_memory = ConversationBufferWindowMemory(
             k=5,
@@ -884,32 +916,50 @@ class RAGBackend:
             return_messages=True,
             output_key="answer"
         )
-
+        
         semantic_template = """Du bist ein Compliance-Assistent für KI-VO und DSGVO.
 
 Beantworte basierend auf Chat-Historie und Kontext-Dokumenten.
 
-WICHTIGE REGELN:
-1. **PRÜFE ZUERST:** Steht die Antwort im bereitgestellten Kontext?
-   - ✅ JA → Beantworte präzise mit Quellenangabe
-   - ❌ NEIN → Sage GENAU: "Diese Information finde ich in den bereitgestellten Dokumenten nicht."
+ANTWORT-STRUKTUR (WICHTIG):
 
-2. **Keine Spekulation:** Erfinde KEINE Informationen die nicht im Kontext stehen
+1. **ZITAT** (falls vorhanden):
+   Gib das EXAKTE Zitat aus dem Dokument wieder
+   - In Anführungszeichen setzen
+   - Quelle angeben (z.B. "KI-VO Art. 3 Nr. 1" oder "DSGVO Art. 5 Abs. 1")
 
-3. **Bei vorherigen Fragen:** Beziehe dich auf Chat-Historie falls relevant
+2. **KURZE ERKLÄRUNG**:
+   - 2-3 Sätze zur Einordnung
+   - Praktische Bedeutung
+   - Keine langen Ausführungen
 
-4. **Präzise & angemessen:** 3-7 Sätze reichen. User kann Folgefragen stellen
+3. **PRIMÄRQUELLEN**:
+   - Liste relevante Artikel/Anhänge/Erwägungsgründe
 
-5. **Quellenangabe:** Nenne immer Artikel/Abschnitt (z.B. "KI-VO Art. 5" oder "DSGVO Art. 6")
+4. **WEITERFÜHRENDE FRAGE**:
+   - Eine Folgefrage zum Thema
 
-Antwortstruktur:
-- Direkte Antwort mit Artikelreferenz (KI-VO oder DSGVO)
+BEISPIEL:
+
+**Zitat (KI-VO Art. 3 Nr. 1):**
+"'KI-System' bezeichnet ein maschinengestütztes System, das für einen gegebenen Satz von menschendefinierten Zielen Ergebnisse wie Inhalte, Vorhersagen, Empfehlungen oder Entscheidungen hervorbringt..."
+
+**Erklärung:**
+Ein KI-System arbeitet also eigenständig und erzeugt Outputs basierend auf vorgegebenen Zielen. Der Begriff ist bewusst weit gefasst um verschiedene KI-Technologien abzudecken.
 
 § **Primärquellen**
-   - Liste relevante Artikel/Anhänge/Erwägungsgründe
-   - z.B: "KI-VO Art. 11 Abs. 1" oder "DSGVO Art. 5"
+   - KI-VO Art. 3 Nr. 1
 
-- Im Anschluss Stelle nur eine weiterführende Frage zum Thema. Dieses sorgt um weitere Unterhaltung mit dem User.
+**Möchten Sie wissen welche KI-Systeme als Hochrisiko gelten?**
+
+---
+
+WICHTIG:
+- IMMER zuerst das Originalzitat
+- Dann kurze Einordnung
+- Keine Spekulation wenn Text nicht im Kontext steht
+- Bei fehlenden Infos: "Diese Information finde ich in den Dokumenten nicht."
+- Falls nötig, beziehe dich auf vorherige Fragen
 
 KONTEXT:
 {context}
@@ -919,27 +969,27 @@ FRAGE:
 
 ANTWORT:
 """
-
+        
         QA_PROMPT = PromptTemplate(
             input_variables=["context", "question"],
             template=semantic_template
         )
-
+        
         qa_chain = ConversationalRetrievalChain.from_llm(
             llm=self.llm,
-            retriever=self.vectorstore.as_retriever(search_kwargs={"k": 5}),
+            retriever=self.vectorstore.as_retriever(search_kwargs={"k": 3}),
             memory=conversation_memory,
             return_source_documents=True,
             combine_docs_chain_kwargs={"prompt": QA_PROMPT},
             verbose=False
         )
-
+        
         # Router
         advanced_router = AdvancedQueryRouter(DEFINED_TERMS_KI_VO, DEFINED_TERMS_DSGVO)
-
+        
         # Keyword Retriever
         keyword_retriever = KeywordMetadataRetriever(self.vectorstore, self.all_chunks)
-
+        
         # Definitions Retriever
         definitions_retriever = DefinitionsRetriever(
             self.vectorstore,
@@ -948,7 +998,7 @@ ANTWORT:
             self.all_chunks,
             self.embeddings
         )
-
+        
         # Triple Pipeline Manager
         self.triple_pipeline = TriplePipelineManager(
             vectorstore=self.vectorstore,
@@ -960,9 +1010,9 @@ ANTWORT:
             keyword_retriever=keyword_retriever,
             definitions_retriever=definitions_retriever
         )
-
+        
         print("   ✅ Triple Pipeline bereit")
-
+    
     def query(
         self,
         question: str,
@@ -971,25 +1021,25 @@ ANTWORT:
     ) -> Dict[str, Any]:
         if not self.initialized:
             raise RuntimeError("Backend not initialized!")
-
+        
         result = self.triple_pipeline.process_query(question, filter_law)
-
+        
         return {
             'answer': result.get('result', ''),
             'sources': result.get('source_documents', []) if show_sources else [],
             'pipeline_used': result.get('pipeline_used', 'unknown'),
             'timestamp': time.strftime("%Y-%m-%d %H:%M:%S")
         }
-
+    
     def clear_memory(self):
         if self.triple_pipeline:
             self.triple_pipeline.clear_memory()
-
+    
     def get_memory_stats(self) -> Dict[str, Any]:
         if self.triple_pipeline:
             return self.triple_pipeline.get_memory_stats()
         return {}
-
+    
     def get_vectordb_stats(self) -> Dict[str, Any]:
         if self.qdrant_client:
             info = self.qdrant_client.get_collection(self.COLLECTION_NAME)
@@ -1009,13 +1059,11 @@ _backend_instance = None
 
 def get_rag_backend(mistral_api_key: str) -> RAGBackend:
     global _backend_instance
-
+    
     if _backend_instance is None:
         _backend_instance = RAGBackend(mistral_api_key)
-
+    
     return _backend_instance
 
 
 __all__ = ['RAGBackend', 'get_rag_backend']
-
-print("✅ rag_backend.py - VOLLSTÄNDIG MIT TRIPLE PIPELINE")
