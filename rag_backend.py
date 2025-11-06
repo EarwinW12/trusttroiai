@@ -281,7 +281,7 @@ class KeywordMetadataRetriever:
         return index
 
     def retrieve_by_metadata(self, extracted_references: Dict[str, Any], k: int = 5) -> List[Document]:
-    results = []
+        results = []
     
         # Artikel suchen
         if 'artikel' in extracted_references:
