@@ -494,11 +494,11 @@ class TriplePipelineManager:
    - Exakter Wortlaut in Anführungszeichen
    - Quelle angeben (z.B. "KI-VO Art. 3 Nr. 1")
 
-2. **KURZE ERKLÄRUNG**:
-   - 1-2 Sätze zur praktischen Bedeutung
-   - Keine ausführliche Interpretation
+2. **Erläuterung**:
+   - 2-5 Sätze zur praktischen Bedeutung
+   
 
-3. **WEITERFÜHRENDE FRAGE**:
+3. WEITERFÜHRENDE FRAGE:
    - Eine Folgefrage zum Thema
 
 BEISPIEL:
@@ -506,7 +506,7 @@ BEISPIEL:
 **Definition (KI-VO Art. 3 Nr. 5):**
 "'Betreiber' bezeichnet eine natürliche oder juristische Person, Behörde, Einrichtung oder sonstige Stelle, die ein KI-System unter ihrer Autorität nutzt..."
 
-**Bedeutung:**
+**Erläuterung:**
 Der Betreiber ist also die Instanz die das KI-System tatsächlich einsetzt, im Gegensatz zum Anbieter der es entwickelt hat.
 
 **Möchten Sie wissen welche Pflichten Betreiber haben?**
@@ -565,13 +565,14 @@ ANTWORTFORMAT:
    - Exakter Wortlaut des Erwägungsgrundes in Anführungszeichen
    - Quelle angeben
 
-2. **KURZE ERKLÄRUNG**:
-   - 2-3 Sätze zur Bedeutung/Einordnung
+2. **Erläuterung**:
+   - 2-5 Sätze zur praktischen Bedeutung
 
 3. **PRIMÄRQUELLEN**:
    - Liste relevante Erwägungsgründe
 
-4. **WEITERFÜHRENDE FRAGE**
+4. WEITERFÜHRENDE FRAGE:
+   - Eine Folgefrage zum Thema*
 
 WICHTIG:
 - Wenn exakter EWG im Kontext → Zitiere ihn
@@ -593,12 +594,12 @@ ANTWORTFORMAT:
    - Relevante Textpassage in Anführungszeichen
    - Quelle angeben
 
-2. **KURZE ERKLÄRUNG**:
-   - 2-3 Sätze zur Bedeutung
+2. **Erläuterung**:
+   - 2-5 Sätze zur Bedeutung
 
 3. **PRIMÄRQUELLEN**
 
-4. **WEITERFÜHRENDE FRAGE**
+4. WEITERFÜHRENDE FRAGE
 
 AKTUELLE FRAGE: {query}
 
@@ -928,15 +929,14 @@ ANTWORT-STRUKTUR (WICHTIG):
    - In Anführungszeichen setzen
    - Quelle angeben (z.B. "KI-VO Art. 3 Nr. 1" oder "DSGVO Art. 5 Abs. 1")
 
-2. **KURZE ERKLÄRUNG**:
-   - 2-3 Sätze zur Einordnung
+2. **Erläuterung**:
+   - 2-5 Sätze zur Einordnung
    - Praktische Bedeutung
-   - Keine langen Ausführungen
 
 3. **PRIMÄRQUELLEN**:
    - Liste relevante Artikel/Anhänge/Erwägungsgründe
 
-4. **WEITERFÜHRENDE FRAGE**:
+4. WEITERFÜHRENDE FRAGE:
    - Eine Folgefrage zum Thema
 
 BEISPIEL:
@@ -944,7 +944,7 @@ BEISPIEL:
 **Zitat (KI-VO Art. 3 Nr. 1):**
 "'KI-System' bezeichnet ein maschinengestütztes System, das für einen gegebenen Satz von menschendefinierten Zielen Ergebnisse wie Inhalte, Vorhersagen, Empfehlungen oder Entscheidungen hervorbringt..."
 
-**Erklärung:**
+**Erläuterung:**
 Ein KI-System arbeitet also eigenständig und erzeugt Outputs basierend auf vorgegebenen Zielen. Der Begriff ist bewusst weit gefasst um verschiedene KI-Technologien abzudecken.
 
 § **Primärquellen**
