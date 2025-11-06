@@ -14,11 +14,12 @@ import re
 
 from langchain_community.document_loaders import Docx2txtLoader
 from langchain_text_splitters import MarkdownHeaderTextSplitter
-from langchain.schema import Document, HumanMessage, AIMessage
+from langchain_core.documents import Document
+from langchain_core.messages import HumanMessage, AIMessage
 from langchain_mistralai import MistralAIEmbeddings, ChatMistralAI
-from langchain.chains import ConversationalRetrievalChain
-from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferWindowMemory
+from langchain.chains import ConversationalRetrievalChain  
+from langchain_core.prompts import PromptTemplate
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams
