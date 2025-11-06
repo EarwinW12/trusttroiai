@@ -283,26 +283,26 @@ class KeywordMetadataRetriever:
     def retrieve_by_metadata(self, extracted_references: Dict[str, Any], k: int = 5) -> List[Document]:
     results = []
     
-    # Artikel suchen
-    if 'artikel' in extracted_references:
-        for artikel_num in extracted_references['artikel']:
-            if str(artikel_num) in self.metadata_index['artikel']:
-                results.extend(self.metadata_index['artikel'][str(artikel_num)])
-    
-    # Erwägungsgründe suchen
-    if 'erwägungsgrund' in extracted_references:
-        for ewg_num in extracted_references['erwägungsgrund']:
-            if str(ewg_num) in self.metadata_index['erwägungsgrund']:
-                results.extend(self.metadata_index['erwägungsgrund'][str(ewg_num)])
-            else:
-                # Fallback: Semantische Suche
-                ewg_query = f"Erwägungsgrund {ewg_num}"
-                semantic_results = self.vectorstore.similarity_search(
-                    ewg_query, 
-                    k=3,
-                    filter={'source_type': 'Erwägungsgründe'} if hasattr(self.vectorstore, 'filter') else None
-                )
-                results.extend(semantic_results)
+        # Artikel suchen
+        if 'artikel' in extracted_references:
+            for artikel_num in extracted_references['artikel']:
+                if str(artikel_num) in self.metadata_index['artikel']:
+                    results.extend(self.metadata_index['artikel'][str(artikel_num)])
+        
+        # Erwägungsgründe suchen
+        if 'erwägungsgrund' in extracted_references:
+            for ewg_num in extracted_references['erwägungsgrund']:
+                if str(ewg_num) in self.metadata_index['erwägungsgrund']:
+                    results.extend(self.metadata_index['erwägungsgrund'][str(ewg_num)])
+                else:
+                    # Fallback: Semantische Suche
+                    ewg_query = f"Erwägungsgrund {ewg_num}"
+                    semantic_results = self.vectorstore.similarity_search(
+                        ewg_query, 
+                        k=3,
+                        filter={'source_type': 'Erwägungsgründe'} if hasattr(self.vectorstore, 'filter') else None
+                    )
+                    results.extend(semantic_results)
 
         unique_results = []
         seen = set()
