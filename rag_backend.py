@@ -65,7 +65,15 @@ class AdvancedQueryRouter:
             'artikel': [r'artikel\s+(\d+)', r'art\.?\s*(\d+)'],
             'kapitel': [r'kapitel\s+([ivxIVX]+)', r'kapitel\s+(\d+)'],
             'anhang': [r'anhang\s+([ivxIVX]+)', r'anhang\s+(\d+)'],
-            'erwägungsgrund': [r'erwägungsgrund\s+(\d+)', r'ewg\.?\s*(\d+)'],
+            'erwägungsgrund': [
+                r'erwägungsgrund\s+(\d+)',
+                r'erwägungsgründe?\s+(\d+)',
+                r'ewg\.?\s*(\d+)',
+                r'ewg\s+(\d+)',
+                r'erw\.?\s*(\d+)',
+                r'\(ewg\s+(\d+)\)',
+                r'recital\s+(\d+)',
+            ],
         }
 
     def analyze_query(self, query: str) -> QueryAnalysis:
@@ -229,32 +237,72 @@ class KeywordMetadataRetriever:
         self.metadata_index = self._build_metadata_index()
 
     def _build_metadata_index(self) -> Dict[str, Dict[str, List[Document]]]:
-        index = {'artikel': {}}
-
-        for chunk in self.all_chunks:
-            metadata = chunk.metadata
-
-            for key in ['Artikel', 'artikel']:
-                if key in metadata:
-                    artikel_value = str(metadata[key]).lower()
-                    match = re.search(r'artikel\s+(\d+)', artikel_value)
-
-                    if match:
-                        artikel_num = match.group(1)
-                        if artikel_num not in index['artikel']:
-                            index['artikel'][artikel_num] = []
-                        index['artikel'][artikel_num].append(chunk)
+    index = {
+        'artikel': {},
+        'erwägungsgrund': {}
+    }
+    
+    for chunk in self.all_chunks:
+        metadata = chunk.metadata
+        source_type = metadata.get('source_type', '').lower()
+        
+        # Index für Artikel
+        for key in ['Artikel', 'artikel']:
+            if key in metadata:
+                artikel_value = str(metadata[key]).lower()
+                match = re.search(r'artikel\s+(\d+)', artikel_value)
+                
+                if match:
+                    artikel_num = match.group(1)
+                    if artikel_num not in index['artikel']:
+                        index['artikel'][artikel_num] = []
+                    index['artikel'][artikel_num].append(chunk)
+                break
+        
+        # Index für Erwägungsgründe
+        if 'erwägung' in source_type:
+            # Versuche EWG-Nummer aus Content zu extrahieren
+            ewg_patterns = [
+                r'erwägungsgrund\s+(\d+)',
+                r'ewg\s+(\d+)',
+                r'\((\d+)\)',  # Nummer in Klammern
+                r'^(\d+)\.',   # Nummer am Anfang mit Punkt
+            ]
+            
+            for pattern in ewg_patterns:
+                match = re.search(pattern, chunk.page_content.lower())
+                if match:
+                    ewg_num = match.group(1)
+                    if ewg_num not in index['erwägungsgrund']:
+                        index['erwägungsgrund'][ewg_num] = []
+                    index['erwägungsgrund'][ewg_num].append(chunk)
                     break
-
-        return index
+    
+    return index
 
     def retrieve_by_metadata(self, extracted_references: Dict[str, Any], k: int = 5) -> List[Document]:
-        results = []
-
-        if 'artikel' in extracted_references:
-            for artikel_num in extracted_references['artikel']:
-                if str(artikel_num) in self.metadata_index['artikel']:
-                    results.extend(self.metadata_index['artikel'][str(artikel_num)])
+    results = []
+    
+    # Artikel suchen
+    if 'artikel' in extracted_references:
+        for artikel_num in extracted_references['artikel']:
+            if str(artikel_num) in self.metadata_index['artikel']:
+                results.extend(self.metadata_index['artikel'][str(artikel_num)])
+    
+    # Erwägungsgründe suchen
+    if 'erwägungsgrund' in extracted_references:
+        for ewg_num in extracted_references['erwägungsgrund']:
+            if str(ewg_num) in self.metadata_index['erwägungsgrund']:
+                results.extend(self.metadata_index['erwägungsgrund'][str(ewg_num)])
+            else:
+                # Fallback: Semantische Suche
+                ewg_query = f"Erwägungsgrund {ewg_num}"
+                semantic_results = self.vectorstore.similarity_search(
+                    ewg_query, 
+                    k=3,
+                    filter={'source_type': 'Erwägungsgründe'} if hasattr(self.vectorstore, 'filter') else None
+                )
+                results.extend(semantic_results)
 
         unique_results = []
         seen = set()
@@ -450,13 +498,15 @@ class TriplePipelineManager:
 
         chat_history = self._get_chat_history_text()
 
-        prompt = f"""Du bist Rechtsexperte. Beantworte die Frage PRÄZISE und KURZ.
+        prompt = f"""Du bist Rechtsexperte. Beantworte die Frage PRÄZISE.
 
 WICHTIGE REGELN:
-1. Gib NUR die offizielle Definition aus den Begriffsbestimmungen wieder
+1. **PRÜFE ZUERST:** Ist die Definition im bereitgestellten Kontext?
+   - ✅ JA → Gib die offizielle Definition wieder
+   - ❌ NEIN → Sage: "Diese Definition finde ich in den bereitgestellten Begriffsbestimmungen nicht."
+
 2. Nenne die Quelle (z.B. "KI-VO Art. 3 Nr. 1")
-3. Maximal 3-5 Sätze
-4. KEINE ausführlichen Erklärungen
+3. KEINE Spekulationen oder zusätzliche Erklärungen außerhalb des Kontexts
 
 {chat_history}
 
@@ -477,20 +527,41 @@ ANTWORT (kurz und präzise):"""
         }
 
     def _handle_keyword_metadata(self, query: str, analysis: QueryAnalysis, filter_law: Optional[str]) -> Dict[str, Any]:
-        docs = self.keyword_retriever.retrieve_by_metadata(
-            analysis.extracted_references,
-            k=5
-        )
+    docs = self.keyword_retriever.retrieve_by_metadata(
+        analysis.extracted_references,
+        k=5
+    )
+    
+    if filter_law and docs:
+        docs = [d for d in docs if d.metadata.get('source_law') == filter_law]
+    
+    if not docs:
+        return self._handle_semantic(query, filter_law)
+    
+    context = "\n\n".join([doc.page_content for doc in docs])
+    chat_history = self._get_chat_history_text()
+    
+    # Spezial-Prompt für Erwägungsgründe
+    if 'erwägungsgrund' in analysis.extracted_references:
+        ewg_nums = ', '.join(map(str, analysis.extracted_references['erwägungsgrund']))
+        prompt = f"""{chat_history}
 
-        if filter_law and docs:
-            docs = [d for d in docs if d.metadata.get('source_law') == filter_law]
+ERWÄGUNGSGRUND-SUCHE:
+Der User fragt nach Erwägungsgrund(en): {ewg_nums}
 
-        if not docs:
-            return self._handle_semantic(query, filter_law)
+GEFUNDENER KONTEXT:
+{context}
 
-        context = "\n\n".join([doc.page_content for doc in docs])
-        chat_history = self._get_chat_history_text()
+WICHTIG:
+1. Wenn der exakte Erwägungsgrund im Kontext ist → Fasse ihn zusammen
+2. Wenn nur verwandte Erwägungsgründe da sind → Erkläre was gefunden wurde
+3. Wenn gar nichts passt → Sage ehrlich: "Erwägungsgrund {ewg_nums} finde ich in den Dokumenten nicht explizit."
 
+AKTUELLE FRAGE: {query}
+
+ANTWORT:"""
+    else:
+        # Standard Prompt für Artikel etc.
         prompt = f"""{chat_history}
 
 KONTEXT:
@@ -818,11 +889,18 @@ class RAGBackend:
 
 Beantworte basierend auf Chat-Historie und Kontext-Dokumenten.
 
-WICHTIGIGE REGELN:
-- Falls nötig, Beziehe dich auf vorherige Fragen
-- Bleibe präzise
-- Sei nicht lang. Bei Bedarf sollte der User eine folgden Frage stellen.
-- Falls keine passenden Infos: Sage klar "Diese Information finde ich in den Dokumenten nicht"
+WICHTIGE REGELN:
+1. **PRÜFE ZUERST:** Steht die Antwort im bereitgestellten Kontext?
+   - ✅ JA → Beantworte präzise mit Quellenangabe
+   - ❌ NEIN → Sage GENAU: "Diese Information finde ich in den bereitgestellten Dokumenten nicht."
+
+2. **Keine Spekulation:** Erfinde KEINE Informationen die nicht im Kontext stehen
+
+3. **Bei vorherigen Fragen:** Beziehe dich auf Chat-Historie falls relevant
+
+4. **Präzise & angemessen:** 3-7 Sätze reichen. User kann Folgefragen stellen
+
+5. **Quellenangabe:** Nenne immer Artikel/Abschnitt (z.B. "KI-VO Art. 5" oder "DSGVO Art. 6")
 
 Antwortstruktur:
 - Direkte Antwort mit Artikelreferenz (KI-VO oder DSGVO)
