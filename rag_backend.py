@@ -237,48 +237,48 @@ class KeywordMetadataRetriever:
         self.metadata_index = self._build_metadata_index()
 
     def _build_metadata_index(self) -> Dict[str, Dict[str, List[Document]]]:
-    index = {
-        'artikel': {},
-        'erwägungsgrund': {}
-    }
-    
-    for chunk in self.all_chunks:
-        metadata = chunk.metadata
-        source_type = metadata.get('source_type', '').lower()
+        index = {
+            'artikel': {},
+            'erwägungsgrund': {}
+        }
         
-        # Index für Artikel
-        for key in ['Artikel', 'artikel']:
-            if key in metadata:
-                artikel_value = str(metadata[key]).lower()
-                match = re.search(r'artikel\s+(\d+)', artikel_value)
-                
-                if match:
-                    artikel_num = match.group(1)
-                    if artikel_num not in index['artikel']:
-                        index['artikel'][artikel_num] = []
-                    index['artikel'][artikel_num].append(chunk)
-                break
-        
-        # Index für Erwägungsgründe
-        if 'erwägung' in source_type:
-            # Versuche EWG-Nummer aus Content zu extrahieren
-            ewg_patterns = [
-                r'erwägungsgrund\s+(\d+)',
-                r'ewg\s+(\d+)',
-                r'\((\d+)\)',  # Nummer in Klammern
-                r'^(\d+)\.',   # Nummer am Anfang mit Punkt
-            ]
+        for chunk in self.all_chunks:
+            metadata = chunk.metadata
+            source_type = metadata.get('source_type', '').lower()
             
-            for pattern in ewg_patterns:
-                match = re.search(pattern, chunk.page_content.lower())
-                if match:
-                    ewg_num = match.group(1)
-                    if ewg_num not in index['erwägungsgrund']:
-                        index['erwägungsgrund'][ewg_num] = []
-                    index['erwägungsgrund'][ewg_num].append(chunk)
+            # Index für Artikel
+            for key in ['Artikel', 'artikel']:
+                if key in metadata:
+                    artikel_value = str(metadata[key]).lower()
+                    match = re.search(r'artikel\s+(\d+)', artikel_value)
+                    
+                    if match:
+                        artikel_num = match.group(1)
+                        if artikel_num not in index['artikel']:
+                            index['artikel'][artikel_num] = []
+                        index['artikel'][artikel_num].append(chunk)
                     break
-    
-    return index
+            
+            # Index für Erwägungsgründe
+            if 'erwägung' in source_type:
+                # Versuche EWG-Nummer aus Content zu extrahieren
+                ewg_patterns = [
+                    r'erwägungsgrund\s+(\d+)',
+                    r'ewg\s+(\d+)',
+                    r'\((\d+)\)',  # Nummer in Klammern
+                    r'^(\d+)\.',   # Nummer am Anfang mit Punkt
+                ]
+                
+                for pattern in ewg_patterns:
+                    match = re.search(pattern, chunk.page_content.lower())
+                    if match:
+                        ewg_num = match.group(1)
+                        if ewg_num not in index['erwägungsgrund']:
+                            index['erwägungsgrund'][ewg_num] = []
+                        index['erwägungsgrund'][ewg_num].append(chunk)
+                        break
+        
+        return index
 
     def retrieve_by_metadata(self, extracted_references: Dict[str, Any], k: int = 5) -> List[Document]:
     results = []
