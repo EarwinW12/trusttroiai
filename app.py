@@ -1,5 +1,19 @@
+import sys
+import os
+
+# Path setup
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 import streamlit as st
-from rag_backend import get_rag_backend
+
+# Error handling für Import
+try:
+    from rag_backend import get_rag_backend
+except ImportError as e:
+    st.error(f"❌ Import Error: {e}")
+    st.error("rag_backend.py konnte nicht geladen werden!")
+    st.stop()
+
 import os
 
 st.set_page_config(
