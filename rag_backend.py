@@ -527,49 +527,49 @@ ANTWORT (kurz und präzise):"""
         }
 
     def _handle_keyword_metadata(self, query: str, analysis: QueryAnalysis, filter_law: Optional[str]) -> Dict[str, Any]:
-    docs = self.keyword_retriever.retrieve_by_metadata(
-        analysis.extracted_references,
-        k=5
-    )
+        docs = self.keyword_retriever.retrieve_by_metadata(
+            analysis.extracted_references,
+            k=5
+        )
+        
+        if filter_law and docs:
+            docs = [d for d in docs if d.metadata.get('source_law') == filter_law]
+        
+        if not docs:
+            return self._handle_semantic(query, filter_law)
+        
+        context = "\n\n".join([doc.page_content for doc in docs])
+        chat_history = self._get_chat_history_text()
+        
+        # Spezial-Prompt für Erwägungsgründe
+        if 'erwägungsgrund' in analysis.extracted_references:
+            ewg_nums = ', '.join(map(str, analysis.extracted_references['erwägungsgrund']))
+            prompt = f"""{chat_history}
     
-    if filter_law and docs:
-        docs = [d for d in docs if d.metadata.get('source_law') == filter_law]
+    ERWÄGUNGSGRUND-SUCHE:
+    Der User fragt nach Erwägungsgrund(en): {ewg_nums}
     
-    if not docs:
-        return self._handle_semantic(query, filter_law)
+    GEFUNDENER KONTEXT:
+    {context}
     
-    context = "\n\n".join([doc.page_content for doc in docs])
-    chat_history = self._get_chat_history_text()
+    WICHTIG:
+    1. Wenn der exakte Erwägungsgrund im Kontext ist → Fasse ihn zusammen
+    2. Wenn nur verwandte Erwägungsgründe da sind → Erkläre was gefunden wurde
+    3. Wenn gar nichts passt → Sage ehrlich: "Erwägungsgrund {ewg_nums} finde ich in den Dokumenten nicht explizit."
     
-    # Spezial-Prompt für Erwägungsgründe
-    if 'erwägungsgrund' in analysis.extracted_references:
-        ewg_nums = ', '.join(map(str, analysis.extracted_references['erwägungsgrund']))
-        prompt = f"""{chat_history}
-
-ERWÄGUNGSGRUND-SUCHE:
-Der User fragt nach Erwägungsgrund(en): {ewg_nums}
-
-GEFUNDENER KONTEXT:
-{context}
-
-WICHTIG:
-1. Wenn der exakte Erwägungsgrund im Kontext ist → Fasse ihn zusammen
-2. Wenn nur verwandte Erwägungsgründe da sind → Erkläre was gefunden wurde
-3. Wenn gar nichts passt → Sage ehrlich: "Erwägungsgrund {ewg_nums} finde ich in den Dokumenten nicht explizit."
-
-AKTUELLE FRAGE: {query}
-
-ANTWORT:"""
-    else:
-        # Standard Prompt für Artikel etc.
-        prompt = f"""{chat_history}
-
-KONTEXT:
-{context}
-
-AKTUELLE FRAGE: {query}
-
-ANTWORT:"""
+    AKTUELLE FRAGE: {query}
+    
+    ANTWORT:"""
+        else:
+            # Standard Prompt für Artikel etc.
+            prompt = f"""{chat_history}
+    
+    KONTEXT:
+    {context}
+    
+    AKTUELLE FRAGE: {query}
+    
+    ANTWORT:"""
 
         response = self.llm.invoke(prompt)
         self._save_to_memory(query, response.content)
