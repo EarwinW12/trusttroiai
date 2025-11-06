@@ -6,3 +6,4 @@ langchain-qdrant
 python-docx
 docx2txt
 streamlit
+langchain-core==0.1.52
