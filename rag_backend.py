@@ -553,8 +553,8 @@ DEINE ANTWORT:"""
         
         # Spezial-Prompt für Erwägungsgründe
         if 'erwägungsgrund' in analysis.extracted_references:
-    ewg_nums = ', '.join(map(str, analysis.extracted_references['erwägungsgrund']))
-    prompt = f"""{chat_history}
+            ewg_nums = ', '.join(map(str, analysis.extracted_references['erwägungsgrund']))
+            prompt = f"""{chat_history}
 
 Du bist Rechtsexperte und der Nutzer möchte den Erwägungsgrund {ewg_nums} verstehen.
 
@@ -579,9 +579,9 @@ WICHTIG:
 FRAGE: {query}
 
 ANTWORT:"""
-else:
-    # Standard für Artikel/Anhänge
-    prompt = f"""{chat_history}
+        else:
+            # Standard für Artikel/Anhänge
+            prompt = f"""{chat_history}
 
 Du bist Rechtsexperte. Der Nutzer fragt nach einem bestimmten Rechtstext.
 
