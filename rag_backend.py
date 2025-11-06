@@ -551,56 +551,152 @@ DEINE ANTWORT:"""
         context = "\n\n".join([doc.page_content for doc in docs])
         chat_history = self._get_chat_history_text()
         
-        # Spezial-Prompt für Erwägungsgründe
+        # ERWÄGUNGSGRÜNDE
         if 'erwägungsgrund' in analysis.extracted_references:
             ewg_nums = ', '.join(map(str, analysis.extracted_references['erwägungsgrund']))
             prompt = f"""{chat_history}
 
-Du bist Rechtsexperte und der Nutzer möchte den Erwägungsgrund {ewg_nums} verstehen.
+Du bist Rechtsexperte. Der Nutzer möchte den vollständigen Erwägungsgrund {ewg_nums} sehen.
 
 ANLEITUNG:
-Gib zuerst den vollständigen Originaltext des Erwägungsgrundes in Anführungszeichen wieder, mit Quellenangabe in Klammern.
+1. Gib zuerst den VOLLSTÄNDIGEN Originaltext des Erwägungsgrundes in Anführungszeichen wieder
+   - Mit genauer Quellenangabe in Klammern
+   - Den KOMPLETTEN Text, nicht gekürzt
 
-Erkläre dann in 3-5 Sätzen die Bedeutung und den Kontext. Was ist der Hintergrund? Warum wurde dieser Erwägungsgrund aufgenommen? Nutze wenn möglich ein praktisches Beispiel.
+2. Erkläre dann in 3-5 Sätzen:
+   - Was ist der Hintergrund und Zweck?
+   - Für wen ist das relevant?
+   - Nutze ein praktisches Beispiel
 
-Schließe mit einer natürlichen Folgefrage ab.
+3. Stelle eine natürliche weiterführende Frage
 
-Liste am Ende die verwendeten Quellen auf.
+4. Liste am Ende die Quellen auf
 
 GEFUNDENER KONTEXT:
 {context}
 
 WICHTIG:
-- Wenn der exakte EWG {ewg_nums} im Kontext ist → Gib ihn vollständig wieder
-- Wenn nur verwandte EWG gefunden wurden → Erkläre was gefunden wurde
-- Wenn gar nichts passt → Sage ehrlich: "Ich finde den Erwägungsgrund {ewg_nums} nicht in den verfügbaren Dokumenten."
-- Schreibe verständlich und natürlich
+- VOLLSTÄNDIGER Originaltext, keine Zusammenfassung
+- Wenn der exakte EWG {ewg_nums} im Kontext ist → Gib ihn komplett wieder
+- Wenn nicht gefunden → Sage ehrlich: "Ich finde den Erwägungsgrund {ewg_nums} nicht in den verfügbaren Dokumenten."
 
 FRAGE: {query}
 
 ANTWORT:"""
+        
+        # ANHÄNGE
+        elif 'anhang' in analysis.extracted_references:
+            anhang_nums = ', '.join(map(str, analysis.extracted_references['anhang']))
+            prompt = f"""{chat_history}
+
+Du bist Rechtsexperte. Der Nutzer möchte den vollständigen Anhang {anhang_nums} sehen.
+
+ANLEITUNG:
+1. Gib zuerst den VOLLSTÄNDIGEN Originaltext des Anhangs in Anführungszeichen wieder
+   - Mit genauer Quellenangabe in Klammern
+   - Den KOMPLETTEN Text, alle Punkte und Unterpunkte
+   - Strukturiert mit der Original-Gliederung
+
+2. Erkläre dann in 3-5 Sätzen:
+   - Wofür ist dieser Anhang gedacht?
+   - Welche praktische Bedeutung hat er?
+   - Für wen ist er relevant?
+   - Nutze ein konkretes Beispiel
+
+3. Stelle eine natürliche weiterführende Frage
+
+4. Liste am Ende die Quellen auf
+
+GEFUNDENER KONTEXT:
+{context}
+
+WICHTIG:
+- VOLLSTÄNDIGER Originaltext des Anhangs
+- Alle Unterpunkte und Details
+- Keine Kürzung, keine Zusammenfassung
+- Wenn nicht gefunden → Sage ehrlich: "Ich finde den Anhang {anhang_nums} nicht in den verfügbaren Dokumenten."
+
+FRAGE: {query}
+
+ANTWORT:"""
+        
+        # ARTIKEL
+        elif 'artikel' in analysis.extracted_references:
+            artikel_nums = ', '.join(map(str, analysis.extracted_references['artikel']))
+            prompt = f"""{chat_history}
+
+Du bist Rechtsexperte. Der Nutzer möchte den vollständigen Artikel {artikel_nums} sehen.
+
+ANLEITUNG:
+1. Gib zuerst den VOLLSTÄNDIGEN Originaltext des Artikels in Anführungszeichen wieder
+   - Mit genauer Quellenangabe in Klammers
+   - Den KOMPLETTEN Text mit allen Absätzen
+   - Alle Unterpunkte (Abs. 1, 2, 3, etc.)
+   - Strukturiert wie im Original
+
+2. Erkläre dann in 3-5 Sätzen:
+   - Was regelt dieser Artikel?
+   - Für wen gilt er?
+   - Was sind die praktischen Konsequenzen?
+   - Nutze ein konkretes Beispiel
+
+3. Stelle eine natürliche weiterführende Frage
+
+4. Liste am Ende die Quellen auf
+
+BEISPIEL:
+
+"Artikel 10 - Datenqualität und Datenverwaltung
+
+(1) Hochrisiko-KI-Systeme, die Techniken für Modelle einsetzen, die mit Daten trainiert werden, werden auf der Grundlage von Trainings-, Validierungs- und Testdatensätzen entwickelt, die den Qualitätskriterien der Absätze 2 bis 5 genügen.
+
+(2) Trainingsdatensätze, Validierungsdatensätze und Testdatensätze unterliegen geeigneten Datenverwaltungs- und Datenmanagementpraktiken..."
+
+(KI-VO Art. 10)
+
+Dieser Artikel legt fest, dass Hochrisiko-KI-Systeme mit qualitativ hochwertigen Daten trainiert werden müssen. Praktisches Beispiel: Ein KI-System zur Kreditwürdigkeitsprüfung muss mit repräsentativen Daten trainiert werden, die keine diskriminierenden Verzerrungen enthalten. Die Daten müssen korrekt, aktuell und vollständig sein. Dies ist zentral um faire und verlässliche KI-Entscheidungen zu gewährleisten.
+
+Möchten Sie wissen, welche konkreten Qualitätskriterien für die Datensätze gelten?
+
+---
+§ Verwendete Quellen:
+- KI-VO Art. 10
+
+GEFUNDENER KONTEXT:
+{context}
+
+WICHTIG:
+- VOLLSTÄNDIGER Originaltext des Artikels
+- Alle Absätze und Unterpunkte
+- Keine Kürzung
+- Wenn nicht gefunden → Sage ehrlich: "Ich finde den Artikel {artikel_nums} nicht in den verfügbaren Dokumenten."
+
+FRAGE: {query}
+
+ANTWORT:"""
+        
+        # KAPITEL (falls implementiert)
         else:
-            # Standard für Artikel/Anhänge
+            # Fallback für andere Metadaten
             prompt = f"""{chat_history}
 
 Du bist Rechtsexperte. Der Nutzer fragt nach einem bestimmten Rechtstext.
 
 ANLEITUNG:
-Beginne mit dem relevanten Originaltext in Anführungszeichen und Quellenangabe.
+1. Gib den relevanten Originaltext vollständig in Anführungszeichen wieder
+   - Mit Quellenangabe
+   - So komplett wie möglich
 
-Erkläre dann in 3-5 Sätzen die praktische Bedeutung. Was bedeutet das konkret? Für wen ist das relevant? Nutze Beispiele wo sinnvoll.
+2. Erkläre in 3-5 Sätzen die Bedeutung
+   - Praktische Relevanz
+   - Beispiel
 
-Stelle eine natürliche weiterführende Frage.
+3. Weiterführende Frage
 
-Liste am Ende die Quellen auf.
+4. Quellen auflisten
 
 GEFUNDENER KONTEXT:
 {context}
-
-WICHTIG:
-- Vollständiger Originaltext zuerst
-- Dann verständliche Erklärung
-- Natürliche Sprache, keine steifen Überschriften
 
 FRAGE: {query}
 
