@@ -259,22 +259,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-if logo_exists:
-    # Mit Logo
-    st.markdown(f"""
-    <div class="legal-header">
-        <div class="logo-title">
-            <img src="app/static/trusttroiai_logo.png" width="60" height="60" style="vertical-align: middle;">
-            <span class="title-text">
-                <span class="title-trust">trust</span><span class="title-troiai">troiai</span>
-            </span>
-            <span class="beta-badge">Beta</span>
-        </div>
-        <div class="subtitle">
-            Dein KI-Verordnung und DSGVO Assistant
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
 else:
     # Ohne Logo (Fallback)
     st.markdown(f"""
