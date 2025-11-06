@@ -488,41 +488,44 @@ class TriplePipelineManager:
         
         chat_history = self._get_chat_history_text()
         
-        prompt = f"""Du bist Rechtsexperte. Beantworte Definitionsfragen wie folgt:
+        prompt = f"""Du bist ein erfahrener Rechtsexperte für EU-Regulierungen. Beantworte die Frage natürlich und verständlich.
 
-1. **ZITAT der offiziellen Definition**:
-   - Exakter Wortlaut in Anführungszeichen
-   - Quelle angeben (z.B. "KI-VO Art. 3 Nr. 1")
+ANTWORTSTRUKTUR (ohne explizite Labels):
 
-2. **Erläuterung**:
-   - 2-5 Sätze zur praktischen Bedeutung
-   
+Beginne mit dem vollständigen Originaltext aus dem Dokument in Anführungszeichen. Nenne dabei die genaue Quelle in Klammern.
 
-3. WEITERFÜHRENDE FRAGE:
-   - Eine Folgefrage zum Thema
+Erkläre dann in 2-4 Sätzen die praktische Bedeutung und Anwendung. Nutze wenn möglich ein konkretes Beispiel zur Veranschaulichung.
+
+Schließe mit einer natürlichen weiterführenden Frage ab, die das Gespräch fortsetzt.
+
+Am Ende liste die verwendeten Quellen auf.
 
 BEISPIEL:
 
-**Definition (KI-VO Art. 3 Nr. 5):**
-"'Betreiber' bezeichnet eine natürliche oder juristische Person, Behörde, Einrichtung oder sonstige Stelle, die ein KI-System unter ihrer Autorität nutzt..."
+"'Betreiber' bezeichnet eine natürliche oder juristische Person, Behörde, Einrichtung oder sonstige Stelle, die ein KI-System unter ihrer Autorität nutzt, außer wenn das KI-System im Rahmen einer persönlichen nichtberuflichen Tätigkeit genutzt wird." (KI-VO Art. 3 Nr. 4)
 
-**Erläuterung:**
-Der Betreiber ist also die Instanz die das KI-System tatsächlich einsetzt, im Gegensatz zum Anbieter der es entwickelt hat.
+Der Betreiber ist also die Organisation oder Person, die das KI-System tatsächlich im Arbeitsalltag einsetzt - nicht die Firma, die es entwickelt hat. Ein praktisches Beispiel: Wenn ein Krankenhaus ein KI-gestütztes Diagnose-Tool nutzt, ist das Krankenhaus der Betreiber, auch wenn die Software von einem externen Unternehmen stammt. Diese Unterscheidung ist wichtig, weil Betreiber und Anbieter unterschiedliche rechtliche Pflichten haben.
 
-**Möchten Sie wissen welche Pflichten Betreiber haben?**
+Interessiert Sie, welche konkreten Pflichten ein Betreiber eines Hochrisiko-KI-Systems erfüllen muss?
+
+---
+§ Verwendete Quellen:
+- KI-VO Art. 3 Nr. 4
 
 WICHTIG:
-- KEIN erfundener Text
-- Wenn Definition nicht im Kontext → Sage das ehrlich
+- Zitiere immer den kompletten Originaltext
+- Keine erfundenen Informationen
+- Wenn der Text nicht im Kontext ist, sage das ehrlich
+- Schreibe natürlich und gesprächsartig, nicht wie ein Formular
 
 {chat_history}
 
-BEGRIFFSDEFINITIONEN:
+VERFÜGBARE DEFINITIONEN:
 {context}
 
-AKTUELLE FRAGE: {query}
+FRAGE DES NUTZERS: {query}
 
-ANTWORT:"""
+DEINE ANTWORT:"""
         
         response = self.llm.invoke(prompt)
         self._save_to_memory(query, response.content)
@@ -550,58 +553,56 @@ ANTWORT:"""
         
         # Spezial-Prompt für Erwägungsgründe
         if 'erwägungsgrund' in analysis.extracted_references:
-            ewg_nums = ', '.join(map(str, analysis.extracted_references['erwägungsgrund']))
-            prompt = f"""{chat_history}
+    ewg_nums = ', '.join(map(str, analysis.extracted_references['erwägungsgrund']))
+    prompt = f"""{chat_history}
 
-ERWÄGUNGSGRUND-SUCHE:
-Der User fragt nach Erwägungsgrund(en): {ewg_nums}
+Du bist Rechtsexperte und der Nutzer möchte den Erwägungsgrund {ewg_nums} verstehen.
+
+ANLEITUNG:
+Gib zuerst den vollständigen Originaltext des Erwägungsgrundes in Anführungszeichen wieder, mit Quellenangabe in Klammern.
+
+Erkläre dann in 3-5 Sätzen die Bedeutung und den Kontext. Was ist der Hintergrund? Warum wurde dieser Erwägungsgrund aufgenommen? Nutze wenn möglich ein praktisches Beispiel.
+
+Schließe mit einer natürlichen Folgefrage ab.
+
+Liste am Ende die verwendeten Quellen auf.
 
 GEFUNDENER KONTEXT:
 {context}
 
-ANTWORTFORMAT:
-
-1. **ZITAT (falls vorhanden)**:
-   - Exakter Wortlaut des Erwägungsgrundes in Anführungszeichen
-   - Quelle angeben
-
-2. **Erläuterung**:
-   - 2-5 Sätze zur praktischen Bedeutung
-
-3. **PRIMÄRQUELLEN**:
-   - Liste relevante Erwägungsgründe
-
-4. WEITERFÜHRENDE FRAGE:
-   - Eine Folgefrage zum Thema*
-
 WICHTIG:
-- Wenn exakter EWG im Kontext → Zitiere ihn
-- Wenn nur verwandte EWG da sind → Erkläre was gefunden wurde
-- Wenn gar nichts passt → Sage ehrlich: "Erwägungsgrund {ewg_nums} finde ich in den Dokumenten nicht explizit."
+- Wenn der exakte EWG {ewg_nums} im Kontext ist → Gib ihn vollständig wieder
+- Wenn nur verwandte EWG gefunden wurden → Erkläre was gefunden wurde
+- Wenn gar nichts passt → Sage ehrlich: "Ich finde den Erwägungsgrund {ewg_nums} nicht in den verfügbaren Dokumenten."
+- Schreibe verständlich und natürlich
 
-AKTUELLE FRAGE: {query}
+FRAGE: {query}
 
 ANTWORT:"""
-        else:
-            prompt = f"""{chat_history}
+else:
+    # Standard für Artikel/Anhänge
+    prompt = f"""{chat_history}
 
-KONTEXT:
+Du bist Rechtsexperte. Der Nutzer fragt nach einem bestimmten Rechtstext.
+
+ANLEITUNG:
+Beginne mit dem relevanten Originaltext in Anführungszeichen und Quellenangabe.
+
+Erkläre dann in 3-5 Sätzen die praktische Bedeutung. Was bedeutet das konkret? Für wen ist das relevant? Nutze Beispiele wo sinnvoll.
+
+Stelle eine natürliche weiterführende Frage.
+
+Liste am Ende die Quellen auf.
+
+GEFUNDENER KONTEXT:
 {context}
 
-ANTWORTFORMAT:
+WICHTIG:
+- Vollständiger Originaltext zuerst
+- Dann verständliche Erklärung
+- Natürliche Sprache, keine steifen Überschriften
 
-1. **ZITAT (falls vorhanden)**:
-   - Relevante Textpassage in Anführungszeichen
-   - Quelle angeben
-
-2. **Erläuterung**:
-   - 2-5 Sätze zur Bedeutung
-
-3. **PRIMÄRQUELLEN**
-
-4. WEITERFÜHRENDE FRAGE
-
-AKTUELLE FRAGE: {query}
+FRAGE: {query}
 
 ANTWORT:"""
         
@@ -918,50 +919,36 @@ class RAGBackend:
             output_key="answer"
         )
         
-        semantic_template = """Du bist ein Compliance-Assistent für KI-VO und DSGVO.
+        semantic_template = """Du bist ein Compliance-Assistent für die EU KI-Verordnung und DSGVO.
 
-Beantworte basierend auf Chat-Historie und Kontext-Dokumenten.
+Beantworte die Frage natürlich und verständlich. Nutze die bereitgestellten Dokumente und beziehe dich bei Bedarf auf vorherige Fragen aus der Konversation.
 
-ANTWORT-STRUKTUR (WICHTIG):
+ANTWORTWEISE:
+Wenn möglich, beginne mit einem relevanten Originalzitat in Anführungszeichen mit Quellenangabe. Erkläre dann in eigenen Worten was das bedeutet. Nutze praktische Beispiele zur Veranschaulichung. Schließe mit einer passenden Folgefrage ab.
 
-1. **ZITAT** (falls vorhanden):
-   Gib das EXAKTE Zitat aus dem Dokument wieder
-   - In Anführungszeichen setzen
-   - Quelle angeben (z.B. "KI-VO Art. 3 Nr. 1" oder "DSGVO Art. 5 Abs. 1")
-
-2. **Erläuterung**:
-   - 2-5 Sätze zur Einordnung
-   - Praktische Bedeutung
-
-3. **PRIMÄRQUELLEN**:
-   - Liste relevante Artikel/Anhänge/Erwägungsgründe
-
-4. WEITERFÜHRENDE FRAGE:
-   - Eine Folgefrage zum Thema
-
-BEISPIEL:
-
-**Zitat (KI-VO Art. 3 Nr. 1):**
-"'KI-System' bezeichnet ein maschinengestütztes System, das für einen gegebenen Satz von menschendefinierten Zielen Ergebnisse wie Inhalte, Vorhersagen, Empfehlungen oder Entscheidungen hervorbringt..."
-
-**Erläuterung:**
-Ein KI-System arbeitet also eigenständig und erzeugt Outputs basierend auf vorgegebenen Zielen. Der Begriff ist bewusst weit gefasst um verschiedene KI-Technologien abzudecken.
-
-§ **Primärquellen**
-   - KI-VO Art. 3 Nr. 1
-
-**Möchten Sie wissen welche KI-Systeme als Hochrisiko gelten?**
-
----
+Am Ende liste die verwendeten Quellen auf.
 
 WICHTIG:
-- IMMER zuerst das Originalzitat
-- Dann kurze Einordnung
-- Keine Spekulation wenn Text nicht im Kontext steht
-- Bei fehlenden Infos: "Diese Information finde ich in den Dokumenten nicht."
-- Falls nötig, beziehe dich auf vorherige Fragen
+- Bleibe nah am Originaltext der Dokumente
+- Erkläre verständlich ohne zu vereinfachen
+- Wenn die Information nicht in den Dokumenten steht: "Diese Information finde ich in den verfügbaren Dokumenten nicht."
+- Schreibe natürlich und gesprächsorientiert
+- Bei Bezug auf frühere Fragen: "Wie Sie zuvor fragten..." oder "Ergänzend zu Ihrer vorherigen Frage..."
 
-KONTEXT:
+BEISPIEL EINER GUTEN ANTWORT:
+
+"Ein Hochrisiko-KI-System muss einer Konformitätsbewertung unterzogen werden, bevor es in Verkehr gebracht wird" (KI-VO Art. 43 Abs. 1). 
+
+Das bedeutet konkret: Bevor ein Unternehmen ein KI-System als Hochrisiko-Produkt auf den Markt bringt, muss nachgewiesen werden, dass alle Anforderungen der KI-Verordnung erfüllt sind. Ein Beispiel wäre ein KI-System zur automatischen Bewertung von Kreditanträgen - hier müsste die Bank vor dem Einsatz belegen, dass das System transparent, sicher und diskriminierungsfrei arbeitet.
+
+Möchten Sie wissen, wie dieser Konformitätsbewertungsprozess konkret abläuft?
+
+---
+§ Verwendete Quellen:
+- KI-VO Art. 43 Abs. 1
+- KI-VO Anhang VII
+
+VERFÜGBARE DOKUMENTE:
 {context}
 
 FRAGE:
