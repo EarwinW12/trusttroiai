@@ -259,21 +259,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-else:
-    # Ohne Logo (Fallback)
-    st.markdown(f"""
-    <div class="legal-header">
-        <div>
-            <span class="title-text">
-                <span class="title-trust">trust</span><span class="title-troiai">troiai</span>
-            </span>
-            <span class="beta-badge">Beta</span>
-        </div>
-        <div class="subtitle">
-            Dein KI-Verordnung und DSGVO Assistant
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown("### ⚙️ Konfiguration")
