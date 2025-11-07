@@ -141,15 +141,15 @@ st.markdown(f"""
         color: {suggestion_card_text} !important;
         border: 2px solid {suggestion_card_border} !important;
         border-radius: 4px !important;
-        padding: 1.25rem !important;
-        min-height: 180px !important;
-        max-height: 180px !important;
-        height: 180px !important;
+        padding: 1rem !important;
+        min-height: 200px !important;  /* ← HÖHER */
+        max-height: 200px !important;  /* ← HÖHER */
+        height: 200px !important;      /* ← HÖHER */
         width: 100% !important;
         font-family: 'Times New Roman', serif !important;
         font-weight: 400 !important;
-        font-size: 0.95rem !important;
-        line-height: 1.6 !important;
+        font-size: 0.9rem !important;  /* ← KLEINER für mehr Platz */
+        line-height: 1.5 !important;
         text-align: center !important;
         white-space: normal !important;
         word-wrap: break-word !important;
@@ -256,6 +256,20 @@ st.markdown(f"""
     
     .disclaimer {{
         border-top: none !important;
+    }}
+
+    /* Kacheln gleich groß und größer */
+    div[data-testid="column"] .stButton > button {{
+    min-height: 200px !important;
+    max-height: 200px !important;
+    height: 200px !important;
+    font-size: 0.9rem !important;
+    line-height: 1.5 !important;
+    }}
+    
+    /* Disclaimer mehr Abstand */
+    .disclaimer {{
+        margin-top: 4rem !important;
     }}
     
 </style>
@@ -487,7 +501,7 @@ if "messages" not in st.session_state:
 
 if len(st.session_state.messages) == 0:
     
-    st.markdown('<div class="suggestion-section-title">Starte hier dein KI-Journey</div>', unsafe_allow_html=True)
+    st.markdown('<div class="suggestion-section-title">⚖️ Starte hier dein Compliance-Journey</div>', unsafe_allow_html=True))
     st.markdown('<div class="suggestion-subtitle">Wählen Sie eine Frage oder stellen Sie Ihre eigene</div>', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3, gap="medium")
@@ -512,7 +526,6 @@ if len(st.session_state.messages) == 0:
     
     for col, suggestion in zip([col1, col2, col3], suggestions):
         with col:
-            st.markdown(f'<div class="category-header"><span>{suggestion["icon"]}</span> {suggestion["title"]}</div>', unsafe_allow_html=True)
             
             if st.button(
                 suggestion["question"],
@@ -588,5 +601,6 @@ if prompt := st.chat_input("Ihre Frage zur KI-VO oder DSGVO..."):
                 
             except Exception as e:
                 st.error(f"❌ {e}")
-
+                
+st.markdown("<br><br>", unsafe_allow_html=True)
 st.markdown('<div class="disclaimer">⚠️ TrustTroiAI dient ausschließlich Informationszwecken und ersetzt keine Rechtsberatung.</div>', unsafe_allow_html=True)
