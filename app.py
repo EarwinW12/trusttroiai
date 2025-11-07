@@ -501,7 +501,7 @@ if "messages" not in st.session_state:
 
 if len(st.session_state.messages) == 0:
     
-    st.markdown('<div class="suggestion-section-title">⚖️ Starte hier dein Compliance-Journey</div>', unsafe_allow_html=True))
+    st.markdown('<div class="suggestion-section-title">⚖️ Starte hier dein Compliance-Journey</div>', unsafe_allow_html=True)
     st.markdown('<div class="suggestion-subtitle">Wählen Sie eine Frage oder stellen Sie Ihre eigene</div>', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3, gap="medium")
