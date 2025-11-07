@@ -10,6 +10,113 @@ st.set_page_config(
 )
 
 # ============================================================================
+# CSS (MUSS VOR AUTHENTICATION KOMMEN!)
+# ============================================================================
+
+# Legal Theme Colors
+bg_color = "#FFFAF2"
+trust_color = "#011734"
+troiai_color = "#84352C"
+beta_color = "#011734"
+text_primary = "#011734"
+text_secondary = "#5A5A5A"
+border_color = "#D4C5B9"
+card_bg = "#FFFFFF"
+input_bg = "#FFFFFF"
+suggestion_card_bg = "#FAF7F2"
+suggestion_card_border = "#D4C5B9"
+suggestion_card_text = "#011734"
+
+st.markdown(f"""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&display=swap');
+    
+    /* Legal Theme */
+    * {{
+        font-family: 'Times New Roman', 'Crimson Text', serif;
+    }}
+    
+    .main {{
+        background-color: {bg_color};
+        color: {text_primary};
+    }}
+    
+    /* Legal Header */
+    .legal-header {{
+        text-align: center;
+        padding: 2rem 0 1.5rem 0;
+        border-bottom: 2px solid {border_color};
+        margin-bottom: 2rem;
+    }}
+    
+    .title-text {{
+        font-family: 'Arial', sans-serif;
+        font-size: 3.5rem;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        line-height: 1;
+    }}
+    
+    .title-trust {{
+        color: {trust_color};
+    }}
+    
+    .title-troiai {{
+        color: {troiai_color};
+    }}
+    
+    .beta-badge {{
+        display: inline-block;
+        background: transparent;
+        color: {beta_color};
+        border: 2px solid {beta_color};
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.6rem;
+        font-weight: 700;
+        font-family: 'Arial', sans-serif;
+        margin-left: 0.2rem;
+        vertical-align: super;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }}
+    
+    .subtitle {{
+        font-family: 'Times New Roman', serif;
+        font-size: 0.9rem;
+        color: {text_secondary};
+        margin-top: 0.5rem;
+        font-style: italic;
+        text-align: center;
+    }}
+    
+    /* Login Box Styling */
+    .stTextInput > div > div > input {{
+        background-color: {input_bg};
+        border: 2px solid {border_color};
+        border-radius: 4px;
+        font-family: 'Times New Roman', serif;
+    }}
+    
+    .stButton > button {{
+        background: {trust_color} !important;
+        color: white !important;
+        border: 2px solid {trust_color} !important;
+        border-radius: 4px !important;
+        padding: 0.5rem 2rem !important;
+        font-family: 'Times New Roman', serif !important;
+        font-weight: 600 !important;
+        transition: all 0.2s ease !important;
+    }}
+    
+    .stButton > button:hover {{
+        background: {troiai_color} !important;
+        border-color: {troiai_color} !important;
+    }}
+</style>
+""", unsafe_allow_html=True)
+
+# ============================================================================
 # AUTHENTICATION SYSTEM
 # ============================================================================
 
@@ -47,16 +154,11 @@ def check_password():
     # Login Header
     st.markdown(f"""
     <div class="legal-header">
-        <div style="text-align: center;">
-            <div>
-                <span class="title-text">
-                    <span class="title-trust">trust</span><span class="title-troiai">troiai</span>
-                </span>
-                <span class="beta-badge">Beta</span>
-            </div>
-            <div class="subtitle" style="margin-top: 0.5rem;">
-                Dein KI-Verordnung und DSGVO Assistant
-            </div>
+        <div style="text-align: center; padding: 2rem 0 1rem 0;">
+            <span class="title-text">
+                <span class="title-trust">trust</span><span class="title-troiai">troiai</span>
+            </span>
+            <span class="beta-badge">Beta</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -113,229 +215,6 @@ if not check_password():
 # ============================================================================
 # AB HIER: HAUPTAPP (NUR FÜR EINGELOGGTE USER)
 # ============================================================================
-
-
-# Legal Theme Colors
-bg_color = "#FFFAF2"              # Cremeweiß
-trust_color = "#011734"           # Dunkelblau
-troiai_color = "#84352C"          # Rostrot
-beta_color = "#011734"            # Dunkelblau
-text_primary = "#011734"          # Dunkelblau
-text_secondary = "#5A5A5A"        # Grau
-border_color = "#D4C5B9"          # Beige
-card_bg = "#FFFFFF"               # Weiß
-input_bg = "#FFFFFF"              # Weiß
-suggestion_card_bg = "#FAF7F2"    # Helles Beige
-suggestion_card_border = "#D4C5B9"
-suggestion_card_text = "#011734"
-
-st.markdown(f"""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&display=swap');
-    
-    /* Legal Theme */
-    * {{
-        font-family: 'Times New Roman', 'Crimson Text', serif;
-    }}
-    
-    .main {{
-        background-color: {bg_color};
-        color: {text_primary};
-    }}
-    
-    /* Header mit Logo */
-    .legal-header {{
-    text-align: center;
-    padding: 2rem 0 1.5rem 0;
-    border-bottom: 2px solid {border_color};
-    margin-bottom: 2rem;
-    }}
-    
-    
-    .title-text {{
-        font-family: 'Arial', sans-serif;
-        font-size: 3.5rem;
-        font-weight: 700;
-        letter-spacing: 0.15em;
-        line-height: 1;
-    }}
-    
-    .title-trust {{
-        color: {trust_color};
-    }}
-    
-    .title-troiai {{
-        color: {troiai_color};
-    }}
-    
-    .beta-badge {{
-    display: inline-block;
-    background: transparent;
-    color: {beta_color};
-    border: 2px solid {beta_color};
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.6rem;
-    font-weight: 700;
-    font-family: 'Arial', sans-serif;
-    margin-left: 0.1rem;  /* ← ÄNDERN: von 0.4rem oder 0.5rem auf 0.3rem */
-    vertical-align: super;  /* ← ÄNDERN: von text-top auf super */
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    }}
-    
-    .subtitle {{
-        font-family: 'Times New Roman', serif;
-        font-size: 0.9rem;
-        color: {text_secondary};
-        margin-top: 0.75rem;
-        font-style: italic;
-        text-align: center;
-    }}
-    
-    .suggestion-section-title {{
-        font-family: 'Times New Roman', serif;
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: {text_primary};
-        margin-bottom: 0.5rem;
-        margin-top: 2rem;
-        border-bottom: 1px solid {border_color};
-        padding-bottom: 0.5rem;
-    }}
-    
-    .suggestion-subtitle {{
-        font-family: 'Times New Roman', serif;
-        font-size: 0.95rem;
-        color: {text_secondary};
-        margin-bottom: 1.5rem;
-        font-style: italic;
-    }}
-    
-    .category-header {{
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-family: 'Times New Roman', serif;
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: {text_secondary};
-        margin-bottom: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-    }}
-    
-    div[data-testid="column"] {{
-        flex: 1 1 0 !important;
-        min-width: 0 !important;
-    }}
-    
-    div[data-testid="column"] .stButton > button {{
-        background-color: {suggestion_card_bg} !important;
-        color: {suggestion_card_text} !important;
-        border: 2px solid {suggestion_card_border} !important;
-        border-radius: 4px !important;
-        padding: 1.25rem !important;
-        min-height: 160px !important;
-        max-height: 160px !important;
-        height: 160px !important;
-        width: 100% !important;
-        font-family: 'Times New Roman', serif !important;
-        font-weight: 400 !important;
-        font-size: 0.95rem !important;
-        line-height: 1.6 !important;
-        text-align: center !important;
-        white-space: normal !important;
-        word-wrap: break-word !important;
-        overflow: hidden !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        transition: all 0.2s ease !important;
-        box-shadow: 0 1px 3px rgba(1, 23, 52, 0.1) !important;
-    }}
-    
-    div[data-testid="column"] .stButton > button:hover {{
-        border-color: {troiai_color} !important;
-        box-shadow: 0 4px 12px rgba(132, 53, 44, 0.2) !important;
-        transform: translateY(-2px) !important;
-        background-color: {card_bg} !important;
-    }}
-    
-    [data-testid="stSidebar"] {{
-        background-color: {suggestion_card_bg};
-        border-right: 2px solid {border_color};
-    }}
-    
-    [data-testid="stSidebar"] .stButton > button {{
-        background: {trust_color} !important;
-        color: white !important;
-        border: 2px solid {trust_color} !important;
-        border-radius: 4px !important;
-        padding: 0.5rem 0.75rem !important;
-        font-family: 'Times New Roman', serif !important;
-        font-size: 0.9rem !important;
-        height: auto !important;
-        min-height: auto !important;
-        max-height: none !important;
-        font-weight: 600 !important;
-    }}
-    
-    [data-testid="stSidebar"] .stButton > button:hover {{
-        background: {troiai_color} !important;
-        border-color: {troiai_color} !important;
-    }}
-    
-    .stTextInput > div > div > input {{
-        background-color: {input_bg};
-        color: {text_primary};
-        border: 2px solid {border_color};
-        border-radius: 4px;
-        font-family: 'Times New Roman', serif;
-    }}
-    
-    .stSelectbox > div > div {{
-        background-color: {input_bg};
-        color: {text_primary};
-        border: 2px solid {border_color};
-        font-family: 'Times New Roman', serif;
-    }}
-    
-    [data-testid="stChatMessage"] {{
-        background-color: {card_bg};
-        border: 1px solid {border_color};
-        border-radius: 4px;
-        padding: 1rem;
-        margin: 0.5rem 0;
-        font-family: 'Times New Roman', serif;
-    }}
-    
-    /* Chat Input */
-    .stChatInput {{
-        font-family: 'Times New Roman', serif;
-    }}
-    
-    /* Headers in Chat */
-    [data-testid="stChatMessage"] h1,
-    [data-testid="stChatMessage"] h2,
-    [data-testid="stChatMessage"] h3 {{
-        font-family: 'Times New Roman', serif;
-        color: {text_primary};
-    }}
-    
-    /* Disclaimer */
-    .disclaimer {{
-        text-align: center;
-        padding: 1.5rem 0;
-        border-top: 1px solid {border_color};
-        margin-top: 2rem;
-        font-family: 'Times New Roman', serif;
-        font-size: 0.85rem;
-        color: {text_secondary};
-        font-style: italic;
-    }}
-</style>
-""", unsafe_allow_html=True)
 
 # Header mit Logo / HTML Block
 
