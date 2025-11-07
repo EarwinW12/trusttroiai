@@ -45,7 +45,7 @@ st.markdown(f"""
     .legal-header {{
         text-align: center;
         padding: 2rem 0 1.5rem 0;
-        border-bottom: 2px solid {border_color};
+        border-bottom: none;
         margin-bottom: 2rem;
     }}
     
@@ -105,7 +105,7 @@ st.markdown(f"""
         color: {text_primary};
         margin-bottom: 0.5rem;
         margin-top: 2rem;
-        border-bottom: 1px solid {border_color};
+        border-bottom: none;
         padding-bottom: 0.5rem;
     }}
     
@@ -135,15 +135,16 @@ st.markdown(f"""
         min-width: 0 !important;
     }}
     
+    /* Kacheln gleich groß */
     div[data-testid="column"] .stButton > button {{
         background-color: {suggestion_card_bg} !important;
         color: {suggestion_card_text} !important;
         border: 2px solid {suggestion_card_border} !important;
         border-radius: 4px !important;
         padding: 1.25rem !important;
-        min-height: 160px !important;
-        max-height: 160px !important;
-        height: 160px !important;
+        min-height: 180px !important;
+        max-height: 180px !important;
+        height: 180px !important;
         width: 100% !important;
         font-family: 'Times New Roman', serif !important;
         font-weight: 400 !important;
@@ -240,36 +241,23 @@ st.markdown(f"""
         font-style: italic;
     }}
 
-    /* Trennstriche ausblenden */
+    /* ALLE Borders entfernen */
     hr {{
         display: none !important;
     }}
     
-    /* Kacheln gleich groß */
-    div[data-testid="column"] .stButton > button {{
-        background-color: {suggestion_card_bg} !important;
-        color: {suggestion_card_text} !important;
-        border: 2px solid {suggestion_card_border} !important;
-        border-radius: 4px !important;
-        padding: 1.25rem !important;
-        min-height: 180px !important;
-        max-height: 180px !important;
-        height: 180px !important;
-        width: 100% !important;
-        font-family: 'Times New Roman', serif !important;
-        font-weight: 400 !important;
-        font-size: 0.95rem !important;
-        line-height: 1.6 !important;
-        text-align: center !important;
-        white-space: normal !important;
-        word-wrap: break-word !important;
-        overflow: hidden !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        transition: all 0.2s ease !important;
-        box-shadow: 0 1px 3px rgba(1, 23, 52, 0.1) !important;
+    .legal-header {{
+        border-bottom: none !important;
     }}
+    
+    .suggestion-section-title {{
+        border-bottom: none !important;
+    }}
+    
+    .disclaimer {{
+        border-top: none !important;
+    }}
+    
 </style>
 """, unsafe_allow_html=True)
 
