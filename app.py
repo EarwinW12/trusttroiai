@@ -235,19 +235,19 @@ st.markdown(f"""
 
 st.markdown(f"""
 <div class="legal-header">
-    <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+    <div style="display: flex; flex-direction: column; align-items: flex-start; width: 100%; padding-left: 20%;">
         <div style="white-space: nowrap;">
             <span class="title-text">
                 <span class="title-trust">trust</span><span class="title-troiai">troiai</span>
             </span>
             <span class="beta-badge">Beta</span>
         </div>
-        <div class="subtitle" style="margin-top: 0.5rem; text-align: center; padding-left: 3rem;">
+        <div class="subtitle" style="margin-top: 0.5rem; text-align: left;">
             Dein KI-Verordnung und DSGVO Assistant
         </div>
     </div>
 </div>
-""", unsafe_allow_html=True)
+""", unsafe_allow_html=True))
 
 with st.sidebar:
     st.markdown("### ⚙️ Konfiguration")
