@@ -39,10 +39,10 @@ st.markdown(f"""
     
     /* Header mit Logo */
     .legal-header {{
-        text-align: center;
-        padding: 2rem 0 1.5rem 0;
-        border-bottom: 2px solid {border_color};
-        margin-bottom: 2rem;
+    text-align: center;
+    padding: 2rem 0 1.5rem 0;
+    border-bottom: 2px solid {border_color};
+    margin-bottom: 2rem;
     }}
     
     .logo-title {{
@@ -54,21 +54,19 @@ st.markdown(f"""
     }}
     
     .title-text {{
-    font-family: 'Arial', sans-serif;
-    font-size: 3.5rem;
-    font-weight: 700;
-    letter-spacing: 0.15em;  /* Abstand zwischen Buchstaben */
-    line-height: 1;
+        font-family: 'Arial', sans-serif;
+        font-size: 3.5rem;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        line-height: 1;
     }}
     
     .title-trust {{
         color: {trust_color};
-        letter-spacing: inherit;  /* Erbt letter-spacing */
     }}
     
     .title-troiai {{
         color: {troiai_color};
-        letter-spacing: inherit;  /* Erbt letter-spacing */
     }}
     
     .beta-badge {{
@@ -88,12 +86,12 @@ st.markdown(f"""
     }}
     
     .subtitle {{
-    font-family: 'Times New Roman', serif;
-    font-size: 0.95rem;  /* ← GEÄNDERT: von 1.125rem auf 0.95rem (kleiner) */
-    color: {text_secondary};
-    margin-top: 0.5rem;
-    font-style: italic;
-    text-align: center;  /* ← NEU: Zentriert den Text */
+        font-family: 'Times New Roman', serif;
+        font-size: 0.95rem;
+        color: {text_secondary};
+        margin-top: 0.5rem;
+        font-style: italic;
+        text-align: center;
     }}
     
     .suggestion-section-title {{
