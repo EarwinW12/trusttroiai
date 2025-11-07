@@ -235,14 +235,14 @@ st.markdown(f"""
 
 st.markdown(f"""
 <div class="legal-header">
-    <div style="text-align: center; width: 100%;">
+    <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
         <div style="white-space: nowrap;">
             <span class="title-text">
                 <span class="title-trust">trust</span><span class="title-troiai">troiai</span>
             </span>
             <span class="beta-badge">Beta</span>
         </div>
-        <div class="subtitle" style="margin-top: 0.5rem; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;">
+        <div class="subtitle" style="margin-top: 0.5rem;">
             Dein KI-Verordnung und DSGVO Assistant
         </div>
     </div>
