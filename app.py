@@ -231,7 +231,7 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# Header mit Logo
+# Header mit Logo / HTML Block
 
 st.markdown(f"""
 <div class="legal-header">
@@ -242,7 +242,7 @@ st.markdown(f"""
             </span>
             <span class="beta-badge">Beta</span>
         </div>
-        <div class="subtitle" style="margin-top: 0.5rem; max-width: 600px;">
+        <div class="subtitle" style="margin-top: 0.5rem; text-align: left; padding-left: 2rem;">
             Dein KI-Verordnung und DSGVO Assistant
         </div>
     </div>
