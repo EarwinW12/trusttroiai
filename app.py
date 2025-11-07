@@ -54,19 +54,21 @@ st.markdown(f"""
     }}
     
     .title-text {{
-        font-family: 'Arial', sans-serif;
-        font-size: 3.5rem;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-        line-height: 1;
+    font-family: 'Arial', sans-serif;
+    font-size: 3.5rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;  /* Abstand zwischen Buchstaben */
+    line-height: 1;
     }}
     
     .title-trust {{
         color: {trust_color};
+        letter-spacing: inherit;  /* Erbt letter-spacing */
     }}
     
     .title-troiai {{
         color: {troiai_color};
+        letter-spacing: inherit;  /* Erbt letter-spacing */
     }}
     
     .beta-badge {{
