@@ -9,6 +9,112 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# ============================================================================
+# AUTHENTICATION SYSTEM
+# ============================================================================
+
+def check_password():
+    """Returns `True` if the user had the correct password."""
+
+    def password_entered():
+        """Checks whether a password entered by the user is correct."""
+        username = st.session_state["username"].strip()
+        password = st.session_state["password"]
+        
+        if "users" in st.secrets and username in st.secrets["users"]:
+            if st.secrets["users"][username] == password:
+                st.session_state["password_correct"] = True
+                st.session_state["current_user"] = username
+                st.session_state["user_role"] = st.secrets.get("roles", {}).get(username, "user")
+                del st.session_state["password"]  # Passwort nicht speichern
+                st.rerun()
+            else:
+                st.session_state["password_correct"] = False
+        else:
+            st.session_state["password_correct"] = False
+
+    # Wenn bereits eingeloggt
+    if st.session_state.get("password_correct", False):
+        return True
+
+    # Login-Seite anzeigen
+    st.markdown(f"""
+    <style>
+        {st.session_state.get('custom_css', '')}
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Login Header
+    st.markdown(f"""
+    <div class="legal-header">
+        <div style="text-align: center;">
+            <div>
+                <span class="title-text">
+                    <span class="title-trust">trust</span><span class="title-troiai">troiai</span>
+                </span>
+                <span class="beta-badge">Beta</span>
+            </div>
+            <div class="subtitle" style="margin-top: 0.5rem;">
+                Dein KI-Verordnung und DSGVO Assistant
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Login-Box
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.markdown("""
+        <div style="
+            background: #FFFFFF;
+            padding: 2rem;
+            border-radius: 8px;
+            border: 2px solid #D4C5B9;
+            box-shadow: 0 2px 8px rgba(1, 23, 52, 0.1);
+        ">
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("### 🔐 Anmeldung erforderlich")
+        st.markdown("Bitte geben Sie Ihre Zugangsdaten ein, um fortzufahren.")
+        
+        st.text_input(
+            "Benutzername", 
+            key="username",
+            placeholder="Ihr Benutzername"
+        )
+        st.text_input(
+            "Passwort", 
+            type="password", 
+            key="password",
+            placeholder="Ihr Passwort"
+        )
+        
+        st.button("🔓 Anmelden", on_click=password_entered, use_container_width=True)
+        
+        if "password_correct" in st.session_state and not st.session_state["password_correct"]:
+            st.error("❌ Benutzername oder Passwort falsch")
+        
+        st.markdown("---")
+        st.caption("💡 **Test-User?** Kontaktieren Sie den Administrator für Zugangsdaten.")
+    
+    return False
+
+# ============================================================================
+# AUTHENTICATION CHECK
+# ============================================================================
+
+if not check_password():
+    st.stop()
+
+# ============================================================================
+# AB HIER: HAUPTAPP (NUR FÜR EINGELOGGTE USER)
+# ============================================================================
+
+
 # Legal Theme Colors
 bg_color = "#FFFAF2"              # Cremeweiß
 trust_color = "#011734"           # Dunkelblau
@@ -250,19 +356,37 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 with st.sidebar:
+    # User-Info oben
+    st.markdown("### 👤 Angemeldet")
+    
+    user = st.session_state.get("current_user", "Unbekannt")
+    role = st.session_state.get("user_role", "user")
+    
+    role_icon = "👑" if role == "admin" else "👤"
+    
+    st.info(f"{role_icon} **{user}**")
+    
+    if st.button("🚪 Abmelden", use_container_width=True):
+        # Session State zurücksetzen
+        st.session_state["password_correct"] = False
+        st.session_state.pop("current_user", None)
+        st.session_state.pop("user_role", None)
+        if 'backend' in st.session_state:
+            st.session_state.backend.clear_memory()
+        st.session_state.messages = []
+        st.rerun()
+    
+    st.divider()
+    
     st.markdown("### ⚙️ Konfiguration")
     
-    api_key = st.text_input(
-        "Mistral API Key",
-        type="password",
-        placeholder="sk-..."
-    )
-    
-    if not api_key:
-        st.warning("⚠️ API Key erforderlich")
-        st.stop()
+    # API Key aus Secrets (nicht mehr vom User eingegeben)
+    if "MISTRAL_API_KEY" in st.secrets:
+        api_key = st.secrets["MISTRAL_API_KEY"]
+        st.success("✅ API verbunden")
     else:
-        st.success("✅ Verbunden")
+        st.error("❌ Kein API Key in Secrets gefunden")
+        st.stop()
     
     st.divider()
     
