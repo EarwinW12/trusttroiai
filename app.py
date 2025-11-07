@@ -45,13 +45,6 @@ st.markdown(f"""
     margin-bottom: 2rem;
     }}
     
-    .logo-title {{
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 1rem;
-        margin-bottom: 0.5rem;
-    }}
     
     .title-text {{
         font-family: 'Arial', sans-serif;
@@ -70,26 +63,24 @@ st.markdown(f"""
     }}
     
     .beta-badge {{
-        display: inline-block;
-        background: transparent;
-        color: {beta_color};
-        border: 2px solid {beta_color};
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
-        font-size: 0.6rem;
-        font-weight: 700;
-        font-family: 'Arial', sans-serif;
-        margin-left: 0.4rem;
-        vertical-align: middle;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        position: relative;
-        top: -0.3rem;  /* ← Feinjustierung nach oben */
+    display: inline-block;
+    background: transparent;
+    color: {beta_color};
+    border: 2px solid {beta_color};
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    font-family: 'Arial', sans-serif;
+    margin-left: 0.3rem;  /* ← ÄNDERN: von 0.4rem oder 0.5rem auf 0.3rem */
+    vertical-align: super;  /* ← ÄNDERN: von text-top auf super */
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
     }}
     
     .subtitle {{
         font-family: 'Times New Roman', serif;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
         color: {text_secondary};
         margin-top: 0.75rem;
         font-style: italic;
@@ -241,18 +232,17 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # Header mit Logo
-logo_exists = os.path.exists('assets/trusttroiai_logo.png')
 
 st.markdown(f"""
 <div class="legal-header">
-    <div style="text-align: center;">
-        <div>
+    <div style="text-align: center; width: 100%;">
+        <div style="display: inline-block;">
             <span class="title-text">
                 <span class="title-trust">trust</span><span class="title-troiai">troiai</span>
             </span>
             <span class="beta-badge">Beta</span>
         </div>
-        <div class="subtitle">
+        <div class="subtitle" style="margin-top: 0.5rem;">
             Dein KI-Verordnung und DSGVO Assistant
         </div>
     </div>
