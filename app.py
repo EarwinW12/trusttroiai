@@ -239,6 +239,37 @@ st.markdown(f"""
         color: {text_secondary};
         font-style: italic;
     }}
+
+    /* Trennstriche ausblenden */
+    hr {{
+        display: none !important;
+    }}
+    
+    /* Kacheln gleich groß */
+    div[data-testid="column"] .stButton > button {{
+        background-color: {suggestion_card_bg} !important;
+        color: {suggestion_card_text} !important;
+        border: 2px solid {suggestion_card_border} !important;
+        border-radius: 4px !important;
+        padding: 1.25rem !important;
+        min-height: 180px !important;
+        max-height: 180px !important;
+        height: 180px !important;
+        width: 100% !important;
+        font-family: 'Times New Roman', serif !important;
+        font-weight: 400 !important;
+        font-size: 0.95rem !important;
+        line-height: 1.6 !important;
+        text-align: center !important;
+        white-space: normal !important;
+        word-wrap: break-word !important;
+        overflow: hidden !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.2s ease !important;
+        box-shadow: 0 1px 3px rgba(1, 23, 52, 0.1) !important;
+    }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -315,7 +346,6 @@ def check_password():
         if "password_correct" in st.session_state and not st.session_state["password_correct"]:
             st.error("❌ Benutzername oder Passwort falsch")
         
-        st.markdown("---")
         st.caption("💡 **Test-User?** Kontaktieren Sie den Administrator für Zugangsdaten.")
     
     return False
@@ -372,7 +402,6 @@ with st.sidebar:
         
         st.rerun()
     
-    st.divider()
     
     st.markdown("### ⚙️ Konfiguration")
     
@@ -384,7 +413,6 @@ with st.sidebar:
         st.error("❌ Kein API Key in Secrets gefunden")
         st.stop()
     
-    st.divider()
     
     st.markdown("### 🔍 Filter")
     law_filter = st.selectbox(
@@ -396,9 +424,7 @@ with st.sidebar:
     filter_law = None if law_filter == "Alle" else law_filter
     show_sources = st.checkbox("📚 Quellen anzeigen", value=True)
     
-    st.divider()
-    
-    st.markdown("### 💭 Konversation")
+
     
     col1, col2 = st.columns(2)
     
@@ -473,7 +499,7 @@ if "messages" not in st.session_state:
 
 if len(st.session_state.messages) == 0:
     
-    st.markdown('<div class="suggestion-section-title">Beginnen Sie Ihre Recherche</div>', unsafe_allow_html=True)
+    st.markdown('<div class="suggestion-section-title">Starte hier dein KI-Journey</div>', unsafe_allow_html=True)
     st.markdown('<div class="suggestion-subtitle">Wählen Sie eine Frage oder stellen Sie Ihre eigene</div>', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3, gap="medium")
@@ -526,7 +552,7 @@ if len(st.session_state.messages) == 0:
                 
                 st.rerun()
     
-    st.divider()
+    
 
 st.markdown("### 💬 Konversation")
 
