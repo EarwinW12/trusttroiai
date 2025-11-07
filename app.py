@@ -247,7 +247,7 @@ st.markdown(f"""
         </div>
     </div>
 </div>
-""", unsafe_allow_html=True))
+""", unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown("### ⚙️ Konfiguration")
