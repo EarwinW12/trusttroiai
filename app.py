@@ -245,22 +245,15 @@ logo_exists = os.path.exists('assets/trusttroiai_logo.png')
 
 st.markdown(f"""
 <div class="legal-header">
-    <div class="logo-title">
-        <img src="data:image/png;base64,{logo_base64}" 
-             width="60" 
-             height="60" 
-             style="vertical-align: middle;" 
-             alt="TrustTroiAI Logo">
-        <div style="display: inline-block; text-align: center;">
-            <div>
-                <span class="title-text">
-                    <span class="title-trust">trust</span><span class="title-troiai">troiai</span>
-                </span>
-                <span class="beta-badge">Beta</span>
-            </div>
-            <div class="subtitle">
-                Dein KI-Verordnung und DSGVO Assistant
-            </div>
+    <div style="text-align: center;">
+        <div>
+            <span class="title-text">
+                <span class="title-trust">trust</span><span class="title-troiai">troiai</span>
+            </span>
+            <span class="beta-badge">Beta</span>
+        </div>
+        <div class="subtitle">
+            Dein KI-Verordnung und DSGVO Assistant
         </div>
     </div>
 </div>
