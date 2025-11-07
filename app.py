@@ -72,7 +72,7 @@ st.markdown(f"""
     font-size: 0.6rem;
     font-weight: 700;
     font-family: 'Arial', sans-serif;
-    margin-left: 0.3rem;  /* ← ÄNDERN: von 0.4rem oder 0.5rem auf 0.3rem */
+    margin-left: 0.1rem;  /* ← ÄNDERN: von 0.4rem oder 0.5rem auf 0.3rem */
     vertical-align: super;  /* ← ÄNDERN: von text-top auf super */
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -80,7 +80,7 @@ st.markdown(f"""
     
     .subtitle {{
         font-family: 'Times New Roman', serif;
-        font-size: 0.7rem;
+        font-size: 0.9rem;
         color: {text_secondary};
         margin-top: 0.75rem;
         font-style: italic;
@@ -235,14 +235,14 @@ st.markdown(f"""
 
 st.markdown(f"""
 <div class="legal-header">
-    <div style="text-align: center; width: 100%;">
-        <div style="display: inline-block;">
+    <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+        <div style="white-space: nowrap;">
             <span class="title-text">
                 <span class="title-trust">trust</span><span class="title-troiai">troiai</span>
             </span>
             <span class="beta-badge">Beta</span>
         </div>
-        <div class="subtitle" style="margin-top: 0.5rem;">
+        <div class="subtitle" style="margin-top: 0.5rem; max-width: 600px;">
             Dein KI-Verordnung und DSGVO Assistant
         </div>
     </div>
