@@ -81,7 +81,7 @@ st.markdown(f"""
         font-size: 0.65rem;
         font-weight: 700;
         font-family: 'Arial', sans-serif;
-        margin-left: 0.75rem;
+        margin-left: 0.5rem;
         vertical-align: middle;
         text-transform: uppercase;
         letter-spacing: 0.1em;
@@ -89,7 +89,7 @@ st.markdown(f"""
     
     .subtitle {{
         font-family: 'Times New Roman', serif;
-        font-size: 1.125rem;
+        font-size: 0.95rem;
         color: {text_secondary};
         margin-top: 0.5rem;
         font-style: italic;
