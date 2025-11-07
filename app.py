@@ -74,22 +74,24 @@ st.markdown(f"""
         background: transparent;
         color: {beta_color};
         border: 2px solid {beta_color};
-        padding: 0.25rem 0.6rem;
+        padding: 0.25rem 0.5rem;
         border-radius: 4px;
-        font-size: 0.65rem;
+        font-size: 0.6rem;
         font-weight: 700;
         font-family: 'Arial', sans-serif;
-        margin-left: 0.5rem;
+        margin-left: 0.4rem;
         vertical-align: middle;
         text-transform: uppercase;
         letter-spacing: 0.1em;
+        position: relative;
+        top: -0.3rem;  /* ← Feinjustierung nach oben */
     }}
     
     .subtitle {{
         font-family: 'Times New Roman', serif;
-        font-size: 0.95rem;
+        font-size: 0.75rem;
         color: {text_secondary};
-        margin-top: 0.5rem;
+        margin-top: 0.75rem;
         font-style: italic;
         text-align: center;
     }}
@@ -241,37 +243,28 @@ st.markdown(f"""
 # Header mit Logo
 logo_exists = os.path.exists('assets/trusttroiai_logo.png')
 
-if logo_exists:
-    # Mit Logo
-    st.markdown(f"""
-    <div class="legal-header">
-        <div class="logo-title">
-            <img src="app/static/trusttroiai_logo.png" width="60" height="60" style="vertical-align: middle;">
-            <span class="title-text">
-                <span class="title-trust">trust</span><span class="title-troiai">troiai</span>
-            </span>
-            <span class="beta-badge">Beta</span>
-        </div>
-        <div class="subtitle">
-            Dein KI-Verordnung und DSGVO Assistant
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-else:
-    # Ohne Logo (Fallback)
-    st.markdown(f"""
-    <div class="legal-header">
-        <div>
-            <span class="title-text">
-                <span class="title-trust">trust</span><span class="title-troiai">troiai</span>
-            </span>
-            <span class="beta-badge">Beta</span>
-        </div>
-        <div class="subtitle">
-            Dein KI-Verordnung und DSGVO Assistant
+st.markdown(f"""
+<div class="legal-header">
+    <div class="logo-title">
+        <img src="data:image/png;base64,{logo_base64}" 
+             width="60" 
+             height="60" 
+             style="vertical-align: middle;" 
+             alt="TrustTroiAI Logo">
+        <div style="display: inline-block; text-align: center;">
+            <div>
+                <span class="title-text">
+                    <span class="title-trust">trust</span><span class="title-troiai">troiai</span>
+                </span>
+                <span class="beta-badge">Beta</span>
+            </div>
+            <div class="subtitle">
+                Dein KI-Verordnung und DSGVO Assistant
+            </div>
         </div>
     </div>
-    """, unsafe_allow_html=True)
+</div>
+""", unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown("### ⚙️ Konfiguration")
