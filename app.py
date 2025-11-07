@@ -554,7 +554,7 @@ if len(st.session_state.messages) == 0:
     
     
 
-st.markdown("### 💬 Konversation")
+
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
