@@ -88,12 +88,13 @@ st.markdown(f"""
     }}
     
     .subtitle {{
-        font-family: 'Times New Roman', serif;
-        font-size: 0.95rem;
-        color: {text_secondary};
-        margin-top: 0.5rem;
-        font-style: italic;
-    }}
+    font-family: 'Times New Roman', serif;
+    font-size: 0.95rem;  /* ← GEÄNDERT: von 1.125rem auf 0.95rem (kleiner) */
+    color: {text_secondary};
+    margin-top: 0.5rem;
+    font-style: italic;
+    text-align: center;  /* ← NEU: Zentriert den Text */
+    }
     
     .suggestion-section-title {{
         font-family: 'Times New Roman', serif;
