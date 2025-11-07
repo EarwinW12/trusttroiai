@@ -27,7 +27,7 @@ def check_password():
                 st.session_state["current_user"] = username
                 st.session_state["user_role"] = st.secrets.get("roles", {}).get(username, "user")
                 del st.session_state["password"]  # Passwort nicht speichern
-                st.rerun()
+                
             else:
                 st.session_state["password_correct"] = False
         else:
@@ -374,6 +374,8 @@ with st.sidebar:
         if 'backend' in st.session_state:
             st.session_state.backend.clear_memory()
         st.session_state.messages = []
+        st.session_state.clear()  # Komplett zurücksetzen
+        
         st.rerun()
     
     st.divider()
@@ -438,25 +440,39 @@ def check_documents():
     
     return doc_paths, missing
 
+# Dokumente prüfen
 doc_paths, missing_docs = check_documents()
 
 if missing_docs:
-    st.error("❌ Dokumente fehlen")
+    st.error("❌ Folgende Dokumente fehlen:")
+    for key, filename in missing_docs:
+        st.error(f"  • {filename}")
     st.stop()
 
-@st.cache_resource
-def init_backend(api_key):
-    backend = get_rag_backend(api_key)
-    backend.setup(doc_paths)
+# ============================================================================
+# BACKEND INITIALISIERUNG (LAZY LOADING)
+# ============================================================================
+
+@st.cache_resource(show_spinner=False)
+def init_backend(_api_key, _doc_paths):
+    """Initialisiert das RAG Backend. Cached für Performance."""
+    backend = get_rag_backend(_api_key)
+    backend.setup(_doc_paths)
     return backend
 
-with st.spinner("🔄 Initialisiere Backend..."):
-    try:
-        backend = init_backend(api_key)
-        st.session_state.backend = backend
-    except Exception as e:
-        st.error(f"❌ {e}")
-        st.stop()
+# Backend nur laden wenn noch nicht vorhanden
+if 'backend' not in st.session_state:
+    with st.spinner("🔄 Initialisiere KI-Backend... Bitte warten (ca. 10-30 Sekunden)"):
+        try:
+            backend = init_backend(api_key, doc_paths)
+            st.session_state.backend = backend
+            st.success("✅ Backend erfolgreich geladen!", icon="✅")
+        except Exception as e:
+            st.error(f"❌ Backend-Initialisierung fehlgeschlagen: {str(e)}")
+            st.info("💡 Bitte laden Sie die Seite neu oder kontaktieren Sie den Support.")
+            st.stop()
+else:
+    backend = st.session_state.backend
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
