@@ -94,7 +94,7 @@ st.markdown(f"""
     margin-top: 0.5rem;
     font-style: italic;
     text-align: center;  /* ← NEU: Zentriert den Text */
-    }
+    }}
     
     .suggestion-section-title {{
         font-family: 'Times New Roman', serif;
