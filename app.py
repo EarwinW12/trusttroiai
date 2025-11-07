@@ -242,7 +242,7 @@ st.markdown(f"""
             </span>
             <span class="beta-badge">Beta</span>
         </div>
-        <div class="subtitle" style="margin-top: 0.5rem; text-align: left; padding-left: 2rem;">
+        <div class="subtitle" style="margin-top: 0.5rem; text-align: center; padding-left: 3rem;">
             Dein KI-Verordnung und DSGVO Assistant
         </div>
     </div>
