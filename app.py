@@ -482,15 +482,19 @@ def init_backend(_api_key, _doc_paths):
     backend.setup(_doc_paths)
     return backend
 
+
 # Backend nur laden wenn noch nicht vorhanden
 if 'backend' not in st.session_state:
     with st.spinner("🔄 Initialisiere KI-Backend... Bitte warten (ca. 10-30 Sekunden)"):
         try:
+            import traceback
             backend = init_backend(api_key, doc_paths)
             st.session_state.backend = backend
             st.success("✅ Backend erfolgreich geladen!", icon="✅")
         except Exception as e:
-            st.error(f"❌ Backend-Initialisierung fehlgeschlagen: {str(e)}")
+            st.error(f"❌ Backend-Initialisierung fehlgeschlagen!")
+            st.error(f"**Fehler:** {str(e)}")
+            st.code(traceback.format_exc())  # Vollständiger Stack Trace
             st.info("💡 Bitte laden Sie die Seite neu oder kontaktieren Sie den Support.")
             st.stop()
 else:
