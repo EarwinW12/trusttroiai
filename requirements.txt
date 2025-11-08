@@ -1,7 +1,7 @@
 qdrant-client
 langchain
 langchain-community
-langchain-mistralai==0.0.5
+langchain-mistralai
 langchain-qdrant
 python-docx
 docx2txt
