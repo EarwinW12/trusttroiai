@@ -271,7 +271,23 @@ st.markdown(f"""
     .disclaimer {{
         margin-top: 4rem !important;
     }}
+
+    /* Dashboard Buttons */
+    [data-testid="baseButton-primary"] {{
+        background: {trust_color} !important;
+        color: white !important;
+    }}
     
+    [data-testid="baseButton-primary"]:hover {{
+        background: {troiai_color} !important;
+    }}
+    
+    /* Disabled Buttons */
+    [data-testid="baseButton-secondary"]:disabled {{
+        opacity: 0.5 !important;
+        cursor: not-allowed !important;
+    }}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -360,6 +376,110 @@ if not check_password():
     st.stop()
 
 # ============================================================================
+# NAVIGATION SYSTEM
+# ============================================================================
+
+# Initialisiere Navigation State
+if "current_page" not in st.session_state:
+    # Versuche gespeicherte Präferenz zu laden (später via Storage)
+    st.session_state.current_page = None  # None = Dashboard anzeigen
+
+# Funktion zum Seitenwechsel
+def switch_page(page_name):
+    st.session_state.current_page = page_name
+    st.rerun()
+
+# ============================================================================
+# DASHBOARD (AUSWAHL-SEITE)
+# ============================================================================
+
+def show_dashboard():
+    """Zeigt das Dashboard mit Tool-Auswahl"""
+    
+    # Header
+    st.markdown(f"""
+    <div class="legal-header">
+        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+            <div style="white-space: nowrap;">
+                <span class="title-text">
+                    <span class="title-trust">trust</span><span class="title-troiai">troiai</span>
+                </span>
+                <span class="beta-badge">Beta</span>
+            </div>
+            <div class="subtitle" style="margin-top: 0.5rem;">
+                Dein KI-Verordnung und DSGVO Assistant
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Willkommensnachricht
+    user = st.session_state.get("current_user", "User")
+    st.markdown(f"### 👋 Willkommen, {user}!")
+    st.markdown("Wählen Sie das gewünschte Tool:")
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Tool-Kacheln
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        # Kachel 1: Assistant
+        st.markdown("""
+        <div style="
+            background: #FAF7F2;
+            border: 2px solid #D4C5B9;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        ">
+            <h2 style="text-align: center; margin-bottom: 1rem;">💬 KI-Verordnung & DSGVO Assistant</h2>
+            <p style="text-align: center; color: #5A5A5A; font-style: italic;">
+                Stelle Fragen zur KI-Verordnung und DSGVO. Erhalte fundierte Antworten mit Quellenangaben.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("🚀 Zum Assistant", use_container_width=True, key="goto_assistant", type="primary"):
+            switch_page("assistant")
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # Kachel 2: Compliance Checker (ausgegraut)
+        st.markdown("""
+        <div style="
+            background: #F5F5F5;
+            border: 2px solid #E0E0E0;
+            border-radius: 8px;
+            padding: 2rem;
+            opacity: 0.6;
+        ">
+            <h2 style="text-align: center; margin-bottom: 1rem;">🔍 Compliance Checker</h2>
+            <p style="text-align: center; color: #5A5A5A; font-style: italic;">
+                Prüfe deine Compliance mit der KI-Verordnung und DSGVO. Erhalte konkrete Handlungsempfehlungen.
+            </p>
+            <p style="text-align: center; color: #84352C; font-weight: bold; margin-top: 1rem;">
+                🚧 Coming Soon
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.button("🔍 Zum Compliance Checker", use_container_width=True, key="goto_checker", disabled=True)
+
+# ============================================================================
+# SEITEN-ROUTING
+# ============================================================================
+
+# Wenn keine Seite gewählt: Dashboard anzeigen
+if st.session_state.current_page is None:
+    show_dashboard()
+    st.stop()
+
+# ============================================================================
 # AB HIER: HAUPTAPP (NUR FÜR EINGELOGGTE USER)
 # ============================================================================
 
@@ -393,56 +513,241 @@ with st.sidebar:
     st.info(f"{role_icon} **{user}**")
     
     if st.button("🚪 Abmelden", use_container_width=True):
-        # Session State zurücksetzen
-        st.session_state["password_correct"] = False
-        st.session_state.pop("current_user", None)
-        st.session_state.pop("user_role", None)
-        if 'backend' in st.session_state:
-            st.session_state.backend.clear_memory()
-        st.session_state.messages = []
-        st.session_state.clear()  # Komplett zurücksetzen
-        
+        st.session_state.clear()
         st.rerun()
     
+    st.divider()
     
-    st.markdown("### ⚙️ Konfiguration")
+    # NAVIGATION
+    st.markdown("### 📍 Navigation")
     
-    # API Key aus Secrets (nicht mehr vom User eingegeben)
-    if "MISTRAL_API_KEY" in st.secrets:
-        api_key = st.secrets["MISTRAL_API_KEY"]
-        st.success("✅ API verbunden")
-    else:
-        st.error("❌ Kein API Key in Secrets gefunden")
+    current_page = st.session_state.get("current_page", "assistant")
+    
+    # Dashboard Button
+    if st.button("🏠 Dashboard", use_container_width=True, key="nav_dashboard"):
+        st.session_state.current_page = None
+        st.rerun()
+    
+    # Assistant Button
+    assistant_type = "primary" if current_page == "assistant" else "secondary"
+    if st.button("💬 Assistant", use_container_width=True, key="nav_assistant", type=assistant_type):
+        switch_page("assistant")
+    
+    # Compliance Checker Button (disabled)
+    st.button("🔍 Compliance Checker", use_container_width=True, key="nav_checker", disabled=True)
+    st.caption("🚧 Coming Soon")
+    
+    st.divider()
+    
+    # Rest der Sidebar (nur wenn auf Assistant-Seite)
+    if current_page == "assistant":
+        st.markdown("### ⚙️ Konfiguration")
+        
+        # API Key aus Secrets
+        if "MISTRAL_API_KEY" in st.secrets:
+            api_key = st.secrets["MISTRAL_API_KEY"]
+            st.success("✅ API verbunden")
+        else:
+            st.error("❌ Kein API Key in Secrets gefunden")
+            st.stop()
+        
+        st.markdown("### 🔍 Filter")
+        law_filter = st.selectbox(
+            "Gesetz",
+            ["Alle", "KI-Verordnung", "DSGVO"],
+            index=0
+        )
+        
+        filter_law = None if law_filter == "Alle" else law_filter
+        show_sources = st.checkbox("📚 Quellen anzeigen", value=True)
+        
+        st.divider()
+        
+        st.markdown("### 💭 Konversation")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("🆕 Neu", use_container_width=True, key="new_conv"):
+                if 'backend' in st.session_state and st.session_state.backend:
+                    st.session_state.backend.clear_memory()
+                    st.session_state.messages = []
+                    st.success("✅")
+                    st.rerun()
+        
+        with col2:
+            if st.button("📊 Stats", use_container_width=True, key="stats"):
+                if 'backend' in st.session_state and st.session_state.backend:
+                    stats = st.session_state.backend.get_memory_stats()
+                    st.json(stats)
+
+# ============================================================================
+# ASSISTANT HAUPTSEITE
+# ============================================================================
+
+def show_assistant_page():
+    """Zeigt die Assistant Hauptseite"""
+    
+    # Header
+    st.markdown(f"""
+    <div class="legal-header">
+        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+            <div style="white-space: nowrap;">
+                <span class="title-text">
+                    <span class="title-trust">trust</span><span class="title-troiai">troiai</span>
+                </span>
+                <span class="beta-badge">Beta</span>
+            </div>
+            <div class="subtitle" style="margin-top: 0.5rem;">
+                Dein KI-Verordnung und DSGVO Assistant
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Dokumente prüfen
+    doc_paths, missing_docs = check_documents()
+    
+    if missing_docs:
+        st.error("❌ Folgende Dokumente fehlen:")
+        for key, filename in missing_docs:
+            st.error(f"  • {filename}")
         st.stop()
     
+    # Backend initialisieren
+    if 'backend' not in st.session_state:
+        with st.spinner("🔄 Initialisiere KI-Backend... Bitte warten (ca. 10-30 Sekunden)"):
+            try:
+                import traceback
+                backend = init_backend(api_key, doc_paths)
+                st.session_state.backend = backend
+                st.success("✅ Backend erfolgreich geladen!", icon="✅")
+            except Exception as e:
+                st.error(f"❌ Backend-Initialisierung fehlgeschlagen!")
+                st.error(f"**Fehler:** {str(e)}")
+                st.code(traceback.format_exc())
+                st.stop()
+    else:
+        backend = st.session_state.backend
     
-    st.markdown("### 🔍 Filter")
-    law_filter = st.selectbox(
-        "Gesetz",
-        ["Alle", "KI-Verordnung", "DSGVO"],
-        index=0
-    )
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
     
-    filter_law = None if law_filter == "Alle" else law_filter
-    show_sources = st.checkbox("📚 Quellen anzeigen", value=True)
+    # Suggestion Cards (nur wenn keine Messages)
+    if len(st.session_state.messages) == 0:
+        st.markdown('<div class="suggestion-section-title">⚖️ Starte hier dein Compliance-Journey</div>', unsafe_allow_html=True)
+        st.markdown('<div class="suggestion-subtitle">Wählen Sie eine Frage oder stellen Sie Ihre eigene</div>', unsafe_allow_html=True)
+        
+        col1, col2, col3 = st.columns(3, gap="medium")
+        
+        suggestions = [
+            {
+                "icon": "§",
+                "title": "DEFINITIONEN",
+                "question": "Wie wird KI-System nach der KI-Verordnung definiert?"
+            },
+            {
+                "icon": "⚖",
+                "title": "PFLICHTEN",
+                "question": "Welche Pflichten hat ein Anbieter eines Hochrisiko-KI-Systems?"
+            },
+            {
+                "icon": "⚡",
+                "title": "ZUSAMMENSPIEL",
+                "question": "Wie ergänzen sich KI-Verordnung und DSGVO bei der Verarbeitung personenbezogener Daten?"
+            }
+        ]
+        
+        for col, suggestion in zip([col1, col2, col3], suggestions):
+            with col:
+                if st.button(
+                    suggestion["question"],
+                    key=f"card_{hash(suggestion['question'])}",
+                    use_container_width=True
+                ):
+                    st.session_state.messages.append({"role": "user", "content": suggestion["question"]})
+                    
+                    with st.spinner("Recherchiere..."):
+                        try:
+                            response = backend.query(
+                                question=suggestion["question"],
+                                filter_law=filter_law,
+                                show_sources=show_sources
+                            )
+                            
+                            st.session_state.messages.append({
+                                "role": "assistant",
+                                "content": response['answer'],
+                                "sources": response.get('sources', [])
+                            })
+                            
+                        except Exception as e:
+                            st.error(f"❌ {e}")
+                    
+                    st.rerun()
     
+    # Chat Messages
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+            
+            if "sources" in message and message["sources"] and show_sources:
+                with st.expander("📚 Quellen"):
+                    for i, source in enumerate(message["sources"][:3], 1):
+                        law = source.metadata.get('source_law', 'N/A')
+                        artikel = source.metadata.get('artikel', source.metadata.get('source_type', 'N/A'))
+                        st.markdown(f"**{i}. {law} - {artikel}**")
+                        st.caption(f"_{source.page_content[:200]}..._")
+    
+    # Chat Input
+    if prompt := st.chat_input("Ihre Frage zur KI-VO oder DSGVO..."):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        
+        with st.chat_message("assistant"):
+            with st.spinner("Recherchiere..."):
+                try:
+                    response = backend.query(
+                        question=prompt,
+                        filter_law=filter_law,
+                        show_sources=show_sources
+                    )
+                    
+                    st.markdown(response['answer'])
+                    
+                    if response.get('sources') and show_sources:
+                        with st.expander("📚 Quellen"):
+                            for i, source in enumerate(response['sources'][:3], 1):
+                                law = source.metadata.get('source_law', 'N/A')
+                                artikel = source.metadata.get('artikel', source.metadata.get('source_type', 'N/A'))
+                                st.markdown(f"**{i}. {law} - {artikel}**")
+                                st.caption(f"_{source.page_content[:200]}..._")
+                    
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": response['answer'],
+                        "sources": response.get('sources', [])
+                    })
+                    
+                except Exception as e:
+                    st.error(f"❌ {e}")
+    
+    # Disclaimer
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown('<div class="disclaimer">⚠️ TrustTroiAI dient ausschließlich Informationszwecken und ersetzt keine Rechtsberatung.</div>', unsafe_allow_html=True)
 
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        if st.button("🆕 Neu", use_container_width=True, key="new_conv"):
-            if 'backend' in st.session_state and st.session_state.backend:
-                st.session_state.backend.clear_memory()
-                st.session_state.messages = []
-                st.success("✅")
-                st.rerun()
-    
-    with col2:
-        if st.button("📊 Stats", use_container_width=True, key="stats"):
-            if 'backend' in st.session_state and st.session_state.backend:
-                stats = st.session_state.backend.get_memory_stats()
-                st.json(stats)
+# ============================================================================
+# SEITEN-ROUTING
+# ============================================================================
+
+if st.session_state.current_page == "assistant":
+    show_assistant_page()
+elif st.session_state.current_page is None:
+    show_dashboard()
+# ============================================================================
+# Check Documents
+# ============================================================================
 
 def check_documents():
     doc_paths = {
