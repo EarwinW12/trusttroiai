@@ -708,6 +708,41 @@ DEINE ANTWORT:"""
             'source_documents': docs,
             'pipeline_used': 'keyword_metadata'
         }
+
+
+    def _handle_keyword_metadata(self, query: str, analysis: QueryAnalysis, filter_law: Optional[str]) -> Dict[str, Any]:
+        # ... existierender Code ...
+        
+        return {
+            'result': response.content,
+            'source_documents': docs,
+            'pipeline_used': 'keyword_metadata'
+        }
+    
+    # HIER EINFÜGEN! ↓↓↓
+    
+    def _handle_semantic(self, query: str, filter_law: Optional[str]) -> Dict[str, Any]:
+        """Semantic Search Pipeline - nutzt den QA Chain"""
+        try:
+            result = self.qa_chain({"question": query})
+            
+            docs = result.get('source_documents', [])
+            
+            if filter_law and docs:
+                docs = [d for d in docs if d.metadata.get('source_law') == filter_law]
+            
+            return {
+                'result': result.get('answer', ''),
+                'source_documents': docs,
+                'pipeline_used': 'semantic'
+            }
+        except Exception as e:
+            return {
+                'result': f"Entschuldigung, bei der Verarbeitung ist ein Fehler aufgetreten: {str(e)}",
+                'source_documents': [],
+                'pipeline_used': 'semantic_error'
+            }
+
     
     def _get_chat_history_text(self) -> str:
         messages = self.qa_chain.memory.chat_memory.messages
