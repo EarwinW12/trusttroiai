@@ -537,126 +537,133 @@ DEINE ANTWORT:"""
         }
     
     def _handle_keyword_metadata(self, query: str, analysis: QueryAnalysis, filter_law: Optional[str]) -> Dict[str, Any]:
-        docs = self.keyword_retriever.retrieve_by_metadata(
-            analysis.extracted_references,
-            k=5
-        )
-        
-        if filter_law and docs:
-            docs = [d for d in docs if d.metadata.get('source_law') == filter_law]
-        
-        if not docs:
-            return self._handle_semantic(query, filter_law)
-        
-        context = "\n\n".join([doc.page_content for doc in docs])
-        chat_history = self._get_chat_history_text()
-        
-        # ERWÄGUNGSGRÜNDE
-        if 'erwägungsgrund' in analysis.extracted_references:
-            ewg_nums = ', '.join(map(str, analysis.extracted_references['erwägungsgrund']))
-            prompt = f"""{chat_history}
+    docs = self.keyword_retriever.retrieve_by_metadata(
+        analysis.extracted_references,
+        k=5
+    )
+    
+    if filter_law and docs:
+        docs = [d for d in docs if d.metadata.get('source_law') == filter_law]
+    
+    if not docs:
+        return self._handle_semantic(query, filter_law)
+    
+    context = "\n\n".join([doc.page_content for doc in docs])
+    chat_history = self._get_chat_history_text()
+    
+    # ERWÄGUNGSGRÜNDE
+    if 'erwägungsgrund' in analysis.extracted_references:
+        ewg_nums = ', '.join(map(str, analysis.extracted_references['erwägungsgrund']))
+        prompt = f"""{chat_history}
 
-Du bist Rechtsexperte. Der Nutzer möchte den vollständigen Erwägungsgrund {ewg_nums} sehen.
+Du bist Rechtsexperte. Der Nutzer möchte den Erwägungsgrund {ewg_nums} sehen.
 
-ANLEITUNG:
-1. Gib zuerst den VOLLSTÄNDIGEN Originaltext des Erwägungsgrundes in Anführungszeichen wieder
-   - Mit genauer Quellenangabe in Klammern
-   - Den KOMPLETTEN Text, nicht gekürzt
+WICHTIG - STRUKTUR BEFOLGEN:
 
-2. Erkläre dann in 3-5 Sätzen:
-   - Was ist der Hintergrund und Zweck?
-   - Für wen ist das relevant?
+1. ZUERST: Gib den VOLLSTÄNDIGEN Originaltext in Anführungszeichen wieder:
+   "Erwägungsgrund {ewg_nums}
+   
+   [KOMPLETTER ORIGINALTEXT]"
+   
+   (Quelle: KI-VO EWG {ewg_nums})
+
+2. DANN: Erkläre in 3-5 Sätzen:
+   - Was ist der Hintergrund?
+   - Warum wurde dieser Erwägungsgrund aufgenommen?
    - Nutze ein praktisches Beispiel
 
-3. Stelle eine natürliche weiterführende Frage
+3. Stelle eine weiterführende Frage
 
-4. Liste am Ende die Quellen auf
+4. Liste Quellen auf
 
 GEFUNDENER KONTEXT:
 {context}
 
-WICHTIG:
-- VOLLSTÄNDIGER Originaltext, keine Zusammenfassung
-- Wenn der exakte EWG {ewg_nums} im Kontext ist → Gib ihn komplett wieder
-- Wenn nicht gefunden → Sage ehrlich: "Ich finde den Erwägungsgrund {ewg_nums} nicht in den verfügbaren Dokumenten."
+REGEL:
+- Wenn EWG {ewg_nums} im Kontext → Gib ihn VOLLSTÄNDIG wieder
+- Wenn nicht → Sage: "Ich finde den Erwägungsgrund {ewg_nums} nicht."
 
 FRAGE: {query}
 
 ANTWORT:"""
-        
-        # ANHÄNGE
-        elif 'anhang' in analysis.extracted_references:
-            anhang_nums = ', '.join(map(str, analysis.extracted_references['anhang']))
-            prompt = f"""{chat_history}
+    
+    # ANHÄNGE
+    elif 'anhang' in analysis.extracted_references:
+        anhang_nums = ', '.join(map(str, analysis.extracted_references['anhang']))
+        prompt = f"""{chat_history}
 
-Du bist Rechtsexperte. Der Nutzer möchte den vollständigen Anhang {anhang_nums} sehen.
+Du bist Rechtsexperte. Der Nutzer möchte Anhang {anhang_nums} sehen.
 
-ANLEITUNG:
-1. Gib zuerst den VOLLSTÄNDIGEN Originaltext des Anhangs in Anführungszeichen wieder
-   - Mit genauer Quellenangabe in Klammern
-   - Den KOMPLETTEN Text, alle Punkte und Unterpunkte
-   - Strukturiert mit der Original-Gliederung
+WICHTIG - STRUKTUR BEFOLGEN:
 
-2. Erkläre dann in 3-5 Sätzen:
+1. ZUERST: Gib den VOLLSTÄNDIGEN Originaltext in Anführungszeichen wieder:
+   "Anhang {anhang_nums} der KI-Verordnung
+   
+   [KOMPLETTER ORIGINALTEXT MIT ALLEN PUNKTEN]"
+   
+   (Quelle: KI-VO Anhang {anhang_nums})
+
+2. DANN: Erkläre in 3-5 Sätzen:
    - Wofür ist dieser Anhang gedacht?
    - Welche praktische Bedeutung hat er?
    - Für wen ist er relevant?
    - Nutze ein konkretes Beispiel
 
-3. Stelle eine natürliche weiterführende Frage
+3. Stelle eine weiterführende Frage
 
-4. Liste am Ende die Quellen auf
+4. Liste Quellen auf
 
 GEFUNDENER KONTEXT:
 {context}
 
-WICHTIG:
-- VOLLSTÄNDIGER Originaltext des Anhangs
-- Alle Unterpunkte und Details
-- Keine Kürzung, keine Zusammenfassung
-- Wenn nicht gefunden → Sage ehrlich: "Ich finde den Anhang {anhang_nums} nicht in den verfügbaren Dokumenten."
+REGEL:
+- VOLLSTÄNDIGER Originaltext mit allen Unterpunkten
+- Keine Kürzung, keine Zusammenfassung beim Originaltext
+- Wenn nicht gefunden → Sage: "Ich finde Anhang {anhang_nums} nicht."
 
 FRAGE: {query}
 
 ANTWORT:"""
-        
-        # ARTIKEL
-        elif 'artikel' in analysis.extracted_references:
-            artikel_nums = ', '.join(map(str, analysis.extracted_references['artikel']))
-            prompt = f"""{chat_history}
+    
+    # ARTIKEL
+    elif 'artikel' in analysis.extracted_references:
+        artikel_nums = ', '.join(map(str, analysis.extracted_references['artikel']))
+        prompt = f"""{chat_history}
 
-Du bist Rechtsexperte. Der Nutzer möchte den vollständigen Artikel {artikel_nums} sehen.
+Du bist Rechtsexperte. Der Nutzer möchte Artikel {artikel_nums} sehen.
 
-ANLEITUNG:
-1. Gib zuerst den VOLLSTÄNDIGEN Originaltext des Artikels in Anführungszeichen wieder
-   - Mit genauer Quellenangabe in Klammers
-   - Den KOMPLETTEN Text mit allen Absätzen
-   - Alle Unterpunkte (Abs. 1, 2, 3, etc.)
-   - Strukturiert wie im Original
+WICHTIG - STRUKTUR BEFOLGEN:
 
-2. Erkläre dann in 3-5 Sätzen:
+1. ZUERST: Gib den VOLLSTÄNDIGEN Originaltext in Anführungszeichen wieder:
+   "Artikel {artikel_nums}
+   
+   [KOMPLETTER ORIGINALTEXT MIT ALLEN ABSÄTZEN]"
+   
+   (Quelle: KI-VO Art. {artikel_nums})
+
+2. DANN: Erkläre in 3-5 Sätzen:
    - Was regelt dieser Artikel?
    - Für wen gilt er?
    - Was sind die praktischen Konsequenzen?
    - Nutze ein konkretes Beispiel
 
-3. Stelle eine natürliche weiterführende Frage
+3. Stelle eine weiterführende Frage
 
-4. Liste am Ende die Quellen auf
+4. Liste Quellen auf
 
-BEISPIEL:
+BEISPIEL-FORMAT:
 
 "Artikel 10 - Datenqualität und Datenverwaltung
 
 (1) Hochrisiko-KI-Systeme, die Techniken für Modelle einsetzen, die mit Daten trainiert werden, werden auf der Grundlage von Trainings-, Validierungs- und Testdatensätzen entwickelt, die den Qualitätskriterien der Absätze 2 bis 5 genügen.
 
-(2) Trainingsdatensätze, Validierungsdatensätze und Testdatensätze unterliegen geeigneten Datenverwaltungs- und Datenmanagementpraktiken..."
+(2) [...]"
 
 (KI-VO Art. 10)
 
-Dieser Artikel legt fest, dass Hochrisiko-KI-Systeme mit qualitativ hochwertigen Daten trainiert werden müssen. Praktisches Beispiel: Ein KI-System zur Kreditwürdigkeitsprüfung muss mit repräsentativen Daten trainiert werden, die keine diskriminierenden Verzerrungen enthalten. Die Daten müssen korrekt, aktuell und vollständig sein. Dies ist zentral um faire und verlässliche KI-Entscheidungen zu gewährleisten.
+Dieser Artikel legt fest, dass Hochrisiko-KI-Systeme mit qualitativ hochwertigen Daten trainiert werden müssen. Praktisch bedeutet das: Ein KI-System zur Kreditwürdigkeitsprüfung muss mit repräsentativen Daten trainiert werden.
 
-Möchten Sie wissen, welche konkreten Qualitätskriterien für die Datensätze gelten?
+Möchten Sie wissen, welche konkreten Qualitätskriterien gelten?
 
 ---
 § Verwendete Quellen:
@@ -665,35 +672,25 @@ Möchten Sie wissen, welche konkreten Qualitätskriterien für die Datensätze g
 GEFUNDENER KONTEXT:
 {context}
 
-WICHTIG:
-- VOLLSTÄNDIGER Originaltext des Artikels
-- Alle Absätze und Unterpunkte
-- Keine Kürzung
-- Wenn nicht gefunden → Sage ehrlich: "Ich finde den Artikel {artikel_nums} nicht in den verfügbaren Dokumenten."
+REGEL:
+- VOLLSTÄNDIGER Originaltext mit allen Absätzen
+- Keine Kürzung beim Originaltext
+- Wenn nicht gefunden → Sage: "Ich finde Artikel {artikel_nums} nicht."
 
 FRAGE: {query}
 
 ANTWORT:"""
-        
-        # KAPITEL (falls implementiert)
-        else:
-            # Fallback für andere Metadaten
-            prompt = f"""{chat_history}
+    
+    else:
+        # Fallback
+        prompt = f"""{chat_history}
 
-Du bist Rechtsexperte. Der Nutzer fragt nach einem bestimmten Rechtstext.
+Du bist Rechtsexperte. Der Nutzer fragt nach einem Rechtstext.
 
-ANLEITUNG:
 1. Gib den relevanten Originaltext vollständig in Anführungszeichen wieder
-   - Mit Quellenangabe
-   - So komplett wie möglich
-
-2. Erkläre in 3-5 Sätzen die Bedeutung
-   - Praktische Relevanz
-   - Beispiel
-
-3. Weiterführende Frage
-
-4. Quellen auflisten
+2. Erkläre die Bedeutung
+3. Stelle eine Frage
+4. Liste Quellen auf
 
 GEFUNDENER KONTEXT:
 {context}
@@ -701,24 +698,15 @@ GEFUNDENER KONTEXT:
 FRAGE: {query}
 
 ANTWORT:"""
-        
-        response = self.llm.invoke(prompt)
-        self._save_to_memory(query, response.content)
-        
-        return {
-            'result': response.content,
-            'source_documents': docs,
-            'pipeline_used': 'keyword_metadata'
-        }
     
-    def _handle_semantic(self, query: str, filter_law: Optional[str]) -> Dict[str, Any]:
-        result = self.qa_chain({"question": query})
-        
-        return {
-            'result': result['answer'],
-            'source_documents': result.get('source_documents', []),
-            'pipeline_used': 'semantic_with_memory'
-        }
+    response = self.llm.invoke(prompt)
+    self._save_to_memory(query, response.content)
+    
+    return {
+        'result': response.content,
+        'source_documents': docs,
+        'pipeline_used': 'keyword_metadata'
+    }
     
     def _get_chat_history_text(self) -> str:
         messages = self.qa_chain.memory.chat_memory.messages
