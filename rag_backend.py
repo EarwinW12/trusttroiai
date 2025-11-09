@@ -587,7 +587,9 @@ DEINE ANTWORT:"""
     FRAGE: {query}
     
     ANTWORT:"""
-        
+
+            response = self.llm.invoke(prompt)
+            
         # ANHÄNGE
         elif 'anhang' in analysis.extracted_references:
             anhang_nums = ', '.join(map(str, analysis.extracted_references['anhang']))
@@ -625,7 +627,8 @@ DEINE ANTWORT:"""
     FRAGE: {query}
     
     ANTWORT:"""
-        
+            response = self.llm.invoke(prompt)
+            
         # ARTIKEL
         elif 'artikel' in analysis.extracted_references:
             artikel_nums = ', '.join(map(str, analysis.extracted_references['artikel']))
@@ -681,7 +684,8 @@ DEINE ANTWORT:"""
     FRAGE: {query}
     
     ANTWORT:"""
-        
+            response = self.llm.invoke(prompt)
+            
         else:
             # Fallback
             prompt = f"""{chat_history}
@@ -700,7 +704,8 @@ DEINE ANTWORT:"""
     
     ANTWORT:"""
         
-        response = self.llm.invoke(prompt)
+            response = self.llm.invoke(prompt)
+            
         self._save_to_memory(query, response.content)
         
         return {
