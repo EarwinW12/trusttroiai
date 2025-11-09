@@ -537,176 +537,177 @@ DEINE ANTWORT:"""
         }
     
     def _handle_keyword_metadata(self, query: str, analysis: QueryAnalysis, filter_law: Optional[str]) -> Dict[str, Any]:
-    docs = self.keyword_retriever.retrieve_by_metadata(
-        analysis.extracted_references,
-        k=5
-    )
+        
+        docs = self.keyword_retriever.retrieve_by_metadata(
+            analysis.extracted_references,
+            k=5
+        )
+        
+        if filter_law and docs:
+            docs = [d for d in docs if d.metadata.get('source_law') == filter_law]
+        
+        if not docs:
+            return self._handle_semantic(query, filter_law)
+        
+        context = "\n\n".join([doc.page_content for doc in docs])
+        chat_history = self._get_chat_history_text()
+        
+        # ERWÄGUNGSGRÜNDE
+        if 'erwägungsgrund' in analysis.extracted_references:
+            ewg_nums = ', '.join(map(str, analysis.extracted_references['erwägungsgrund']))
+            prompt = f"""{chat_history}
     
-    if filter_law and docs:
-        docs = [d for d in docs if d.metadata.get('source_law') == filter_law]
+    Du bist Rechtsexperte. Der Nutzer möchte den Erwägungsgrund {ewg_nums} sehen.
     
-    if not docs:
-        return self._handle_semantic(query, filter_law)
+    WICHTIG - STRUKTUR BEFOLGEN:
     
-    context = "\n\n".join([doc.page_content for doc in docs])
-    chat_history = self._get_chat_history_text()
+    1. ZUERST: Gib den VOLLSTÄNDIGEN Originaltext in Anführungszeichen wieder:
+       "Erwägungsgrund {ewg_nums}
+       
+       [KOMPLETTER ORIGINALTEXT]"
+       
+       (Quelle: KI-VO EWG {ewg_nums})
     
-    # ERWÄGUNGSGRÜNDE
-    if 'erwägungsgrund' in analysis.extracted_references:
-        ewg_nums = ', '.join(map(str, analysis.extracted_references['erwägungsgrund']))
-        prompt = f"""{chat_history}
-
-Du bist Rechtsexperte. Der Nutzer möchte den Erwägungsgrund {ewg_nums} sehen.
-
-WICHTIG - STRUKTUR BEFOLGEN:
-
-1. ZUERST: Gib den VOLLSTÄNDIGEN Originaltext in Anführungszeichen wieder:
-   "Erwägungsgrund {ewg_nums}
-   
-   [KOMPLETTER ORIGINALTEXT]"
-   
-   (Quelle: KI-VO EWG {ewg_nums})
-
-2. DANN: Erkläre in 3-5 Sätzen:
-   - Was ist der Hintergrund?
-   - Warum wurde dieser Erwägungsgrund aufgenommen?
-   - Nutze ein praktisches Beispiel
-
-3. Stelle eine weiterführende Frage
-
-4. Liste Quellen auf
-
-GEFUNDENER KONTEXT:
-{context}
-
-REGEL:
-- Wenn EWG {ewg_nums} im Kontext → Gib ihn VOLLSTÄNDIG wieder
-- Wenn nicht → Sage: "Ich finde den Erwägungsgrund {ewg_nums} nicht."
-
-FRAGE: {query}
-
-ANTWORT:"""
+    2. DANN: Erkläre in 3-5 Sätzen:
+       - Was ist der Hintergrund?
+       - Warum wurde dieser Erwägungsgrund aufgenommen?
+       - Nutze ein praktisches Beispiel
     
-    # ANHÄNGE
-    elif 'anhang' in analysis.extracted_references:
-        anhang_nums = ', '.join(map(str, analysis.extracted_references['anhang']))
-        prompt = f"""{chat_history}
-
-Du bist Rechtsexperte. Der Nutzer möchte Anhang {anhang_nums} sehen.
-
-WICHTIG - STRUKTUR BEFOLGEN:
-
-1. ZUERST: Gib den VOLLSTÄNDIGEN Originaltext in Anführungszeichen wieder:
-   "Anhang {anhang_nums} der KI-Verordnung
-   
-   [KOMPLETTER ORIGINALTEXT MIT ALLEN PUNKTEN]"
-   
-   (Quelle: KI-VO Anhang {anhang_nums})
-
-2. DANN: Erkläre in 3-5 Sätzen:
-   - Wofür ist dieser Anhang gedacht?
-   - Welche praktische Bedeutung hat er?
-   - Für wen ist er relevant?
-   - Nutze ein konkretes Beispiel
-
-3. Stelle eine weiterführende Frage
-
-4. Liste Quellen auf
-
-GEFUNDENER KONTEXT:
-{context}
-
-REGEL:
-- VOLLSTÄNDIGER Originaltext mit allen Unterpunkten
-- Keine Kürzung, keine Zusammenfassung beim Originaltext
-- Wenn nicht gefunden → Sage: "Ich finde Anhang {anhang_nums} nicht."
-
-FRAGE: {query}
-
-ANTWORT:"""
+    3. Stelle eine weiterführende Frage
     
-    # ARTIKEL
-    elif 'artikel' in analysis.extracted_references:
-        artikel_nums = ', '.join(map(str, analysis.extracted_references['artikel']))
-        prompt = f"""{chat_history}
-
-Du bist Rechtsexperte. Der Nutzer möchte Artikel {artikel_nums} sehen.
-
-WICHTIG - STRUKTUR BEFOLGEN:
-
-1. ZUERST: Gib den VOLLSTÄNDIGEN Originaltext in Anführungszeichen wieder:
-   "Artikel {artikel_nums}
-   
-   [KOMPLETTER ORIGINALTEXT MIT ALLEN ABSÄTZEN]"
-   
-   (Quelle: KI-VO Art. {artikel_nums})
-
-2. DANN: Erkläre in 3-5 Sätzen:
-   - Was regelt dieser Artikel?
-   - Für wen gilt er?
-   - Was sind die praktischen Konsequenzen?
-   - Nutze ein konkretes Beispiel
-
-3. Stelle eine weiterführende Frage
-
-4. Liste Quellen auf
-
-BEISPIEL-FORMAT:
-
-"Artikel 10 - Datenqualität und Datenverwaltung
-
-(1) Hochrisiko-KI-Systeme, die Techniken für Modelle einsetzen, die mit Daten trainiert werden, werden auf der Grundlage von Trainings-, Validierungs- und Testdatensätzen entwickelt, die den Qualitätskriterien der Absätze 2 bis 5 genügen.
-
-(2) [...]"
-
-(KI-VO Art. 10)
-
-Dieser Artikel legt fest, dass Hochrisiko-KI-Systeme mit qualitativ hochwertigen Daten trainiert werden müssen. Praktisch bedeutet das: Ein KI-System zur Kreditwürdigkeitsprüfung muss mit repräsentativen Daten trainiert werden.
-
-Möchten Sie wissen, welche konkreten Qualitätskriterien gelten?
-
----
-§ Verwendete Quellen:
-- KI-VO Art. 10
-
-GEFUNDENER KONTEXT:
-{context}
-
-REGEL:
-- VOLLSTÄNDIGER Originaltext mit allen Absätzen
-- Keine Kürzung beim Originaltext
-- Wenn nicht gefunden → Sage: "Ich finde Artikel {artikel_nums} nicht."
-
-FRAGE: {query}
-
-ANTWORT:"""
+    4. Liste Quellen auf
     
-    else:
-        # Fallback
-        prompt = f"""{chat_history}
-
-Du bist Rechtsexperte. Der Nutzer fragt nach einem Rechtstext.
-
-1. Gib den relevanten Originaltext vollständig in Anführungszeichen wieder
-2. Erkläre die Bedeutung
-3. Stelle eine Frage
-4. Liste Quellen auf
-
-GEFUNDENER KONTEXT:
-{context}
-
-FRAGE: {query}
-
-ANTWORT:"""
+    GEFUNDENER KONTEXT:
+    {context}
     
-    response = self.llm.invoke(prompt)
-    self._save_to_memory(query, response.content)
+    REGEL:
+    - Wenn EWG {ewg_nums} im Kontext → Gib ihn VOLLSTÄNDIG wieder
+    - Wenn nicht → Sage: "Ich finde den Erwägungsgrund {ewg_nums} nicht."
     
-    return {
-        'result': response.content,
-        'source_documents': docs,
-        'pipeline_used': 'keyword_metadata'
-    }
+    FRAGE: {query}
+    
+    ANTWORT:"""
+        
+        # ANHÄNGE
+        elif 'anhang' in analysis.extracted_references:
+            anhang_nums = ', '.join(map(str, analysis.extracted_references['anhang']))
+            prompt = f"""{chat_history}
+    
+    Du bist Rechtsexperte. Der Nutzer möchte Anhang {anhang_nums} sehen.
+    
+    WICHTIG - STRUKTUR BEFOLGEN:
+    
+    1. ZUERST: Gib den VOLLSTÄNDIGEN Originaltext in Anführungszeichen wieder:
+       "Anhang {anhang_nums} der KI-Verordnung
+       
+       [KOMPLETTER ORIGINALTEXT MIT ALLEN PUNKTEN]"
+       
+       (Quelle: KI-VO Anhang {anhang_nums})
+    
+    2. DANN: Erkläre in 3-5 Sätzen:
+       - Wofür ist dieser Anhang gedacht?
+       - Welche praktische Bedeutung hat er?
+       - Für wen ist er relevant?
+       - Nutze ein konkretes Beispiel
+    
+    3. Stelle eine weiterführende Frage
+    
+    4. Liste Quellen auf
+    
+    GEFUNDENER KONTEXT:
+    {context}
+    
+    REGEL:
+    - VOLLSTÄNDIGER Originaltext mit allen Unterpunkten
+    - Keine Kürzung, keine Zusammenfassung beim Originaltext
+    - Wenn nicht gefunden → Sage: "Ich finde Anhang {anhang_nums} nicht."
+    
+    FRAGE: {query}
+    
+    ANTWORT:"""
+        
+        # ARTIKEL
+        elif 'artikel' in analysis.extracted_references:
+            artikel_nums = ', '.join(map(str, analysis.extracted_references['artikel']))
+            prompt = f"""{chat_history}
+    
+    Du bist Rechtsexperte. Der Nutzer möchte Artikel {artikel_nums} sehen.
+    
+    WICHTIG - STRUKTUR BEFOLGEN:
+    
+    1. ZUERST: Gib den VOLLSTÄNDIGEN Originaltext in Anführungszeichen wieder:
+       "Artikel {artikel_nums}
+       
+       [KOMPLETTER ORIGINALTEXT MIT ALLEN ABSÄTZEN]"
+       
+       (Quelle: KI-VO Art. {artikel_nums})
+    
+    2. DANN: Erkläre in 3-5 Sätzen:
+       - Was regelt dieser Artikel?
+       - Für wen gilt er?
+       - Was sind die praktischen Konsequenzen?
+       - Nutze ein konkretes Beispiel
+    
+    3. Stelle eine weiterführende Frage
+    
+    4. Liste Quellen auf
+    
+    BEISPIEL-FORMAT:
+    
+    "Artikel 10 - Datenqualität und Datenverwaltung
+    
+    (1) Hochrisiko-KI-Systeme, die Techniken für Modelle einsetzen, die mit Daten trainiert werden, werden auf der Grundlage von Trainings-, Validierungs- und Testdatensätzen entwickelt, die den Qualitätskriterien der Absätze 2 bis 5 genügen.
+    
+    (2) [...]"
+    
+    (KI-VO Art. 10)
+    
+    Dieser Artikel legt fest, dass Hochrisiko-KI-Systeme mit qualitativ hochwertigen Daten trainiert werden müssen. Praktisch bedeutet das: Ein KI-System zur Kreditwürdigkeitsprüfung muss mit repräsentativen Daten trainiert werden.
+    
+    Möchten Sie wissen, welche konkreten Qualitätskriterien gelten?
+    
+    ---
+    § Verwendete Quellen:
+    - KI-VO Art. 10
+    
+    GEFUNDENER KONTEXT:
+    {context}
+    
+    REGEL:
+    - VOLLSTÄNDIGER Originaltext mit allen Absätzen
+    - Keine Kürzung beim Originaltext
+    - Wenn nicht gefunden → Sage: "Ich finde Artikel {artikel_nums} nicht."
+    
+    FRAGE: {query}
+    
+    ANTWORT:"""
+        
+        else:
+            # Fallback
+            prompt = f"""{chat_history}
+    
+    Du bist Rechtsexperte. Der Nutzer fragt nach einem Rechtstext.
+    
+    1. Gib den relevanten Originaltext vollständig in Anführungszeichen wieder
+    2. Erkläre die Bedeutung
+    3. Stelle eine Frage
+    4. Liste Quellen auf
+    
+    GEFUNDENER KONTEXT:
+    {context}
+    
+    FRAGE: {query}
+    
+    ANTWORT:"""
+        
+        response = self.llm.invoke(prompt)
+        self._save_to_memory(query, response.content)
+        
+        return {
+            'result': response.content,
+            'source_documents': docs,
+            'pipeline_used': 'keyword_metadata'
+        }
     
     def _get_chat_history_text(self) -> str:
         messages = self.qa_chain.memory.chat_memory.messages
