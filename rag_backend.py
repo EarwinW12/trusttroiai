@@ -709,15 +709,7 @@ DEINE ANTWORT:"""
             'pipeline_used': 'keyword_metadata'
         }
 
-
-    def _handle_keyword_metadata(self, query: str, analysis: QueryAnalysis, filter_law: Optional[str]) -> Dict[str, Any]:
-        # ... existierender Code ...
         
-        return {
-            'result': response.content,
-            'source_documents': docs,
-            'pipeline_used': 'keyword_metadata'
-        }
     
     # HIER EINFÜGEN! ↓↓↓
     
