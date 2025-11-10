@@ -1,6 +1,12 @@
 """
-RAG Backend - VOLLSTÄNDIGE VERSION MIT TRIPLE PIPELINE
+RAG Backend - VERBESSERTE VERSION MIT FIXES
 TrustTroiAI - KI-VO & DSGVO Compliance Assistant
+
+ÄNDERUNGEN:
+- ✅ FIX 1: Verbesserte EWG-Erkennung mit Multi-Strategie-Ansatz
+- ✅ FIX 2: Validierung der gefundenen Dokumente
+- ✅ FIX 3: Fallback zu Semantic Search bei Keyword-Fehlern
+- ✅ Logging für besseres Debugging
 """
 
 import warnings
@@ -11,6 +17,7 @@ from dataclasses import dataclass
 from enum import Enum
 import time
 import re
+import logging
 
 from langchain_community.document_loaders import Docx2txtLoader
 from langchain_text_splitters import MarkdownHeaderTextSplitter
@@ -24,6 +31,13 @@ from langchain.memory import ConversationBufferWindowMemory
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams
 from langchain_qdrant import Qdrant
+
+# ✅ NEU: Logging Setup
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 
 # ==============================================================================
@@ -227,7 +241,7 @@ class AdvancedQueryRouter:
 
 
 # ==============================================================================
-# KEYWORD RETRIEVER
+# KEYWORD RETRIEVER - ✅ FIX 1 & 2
 # ==============================================================================
 
 class KeywordMetadataRetriever:
@@ -235,11 +249,14 @@ class KeywordMetadataRetriever:
         self.vectorstore = vectorstore
         self.all_chunks = all_chunks
         self.metadata_index = self._build_metadata_index()
+        logger.info(f"📊 Metadata-Index erstellt: {self._get_index_stats()}")
     
     def _build_metadata_index(self) -> Dict[str, Dict[str, List[Document]]]:
+        """✅ FIX 1: VERBESSERTE EWG-Erkennung mit Multi-Strategie-Ansatz"""
         index = {
             'artikel': {},
-            'erwägungsgrund': {}
+            'erwägungsgrund': {},
+            'anhang': {}
         }
         
         for chunk in self.all_chunks:
@@ -259,41 +276,141 @@ class KeywordMetadataRetriever:
                         index['artikel'][artikel_num].append(chunk)
                     break
             
-            # Index für Erwägungsgründe
+            # ✅ FIX 1: VERBESSERTE Index für Erwägungsgründe
             if 'erwägung' in source_type:
-                ewg_patterns = [
-                    r'erwägungsgrund\s+(\d+)',
-                    r'ewg\s+(\d+)',
-                    r'\((\d+)\)',
-                    r'^(\d+)\.',
-                ]
+                ewg_num = None
                 
-                for pattern in ewg_patterns:
-                    match = re.search(pattern, chunk.page_content.lower())
+                # Strategie 1: Aus Metadata holen (höchste Priorität)
+                if 'ewg_nummer' in metadata:
+                    ewg_num = str(metadata['ewg_nummer'])
+                    logger.debug(f"   EWG aus Metadata: {ewg_num}")
+                
+                # Strategie 2: Aus Markdown-Header extrahieren
+                elif 'Erwägungsgrund' in metadata:
+                    header_value = str(metadata['Erwägungsgrund'])
+                    match = re.search(r'(\d+)', header_value)
                     if match:
                         ewg_num = match.group(1)
-                        if ewg_num not in index['erwägungsgrund']:
-                            index['erwägungsgrund'][ewg_num] = []
-                        index['erwägungsgrund'][ewg_num].append(chunk)
+                        logger.debug(f"   EWG aus Header: {ewg_num}")
+                
+                # Strategie 3: Aus Content (erste 300 Zeichen) extrahieren
+                if not ewg_num:
+                    first_lines = chunk.page_content[:300]
+                    
+                    # Verbesserte Pattern-Liste (in Priorität)
+                    patterns = [
+                        r'#\s*Erwägungsgrund\s+(\d+)',      # "# Erwägungsgrund 15"
+                        r'#\s*\((\d+)\)',                    # "# (15)"
+                        r'^Erwägungsgrund\s+(\d+)',          # "Erwägungsgrund 15" am Anfang
+                        r'^\((\d+)\)',                       # "(15)" am Zeilenanfang
+                        r'EWG\s+(\d+)',                      # "EWG 15"
+                        r'Recital\s+(\d+)',                  # "Recital 15"
+                    ]
+                    
+                    for pattern in patterns:
+                        match = re.search(pattern, first_lines, re.MULTILINE | re.IGNORECASE)
+                        if match:
+                            ewg_num = match.group(1)
+                            logger.debug(f"   EWG aus Content (Pattern: {pattern}): {ewg_num}")
+                            break
+                
+                # Indexiere wenn gefunden
+                if ewg_num:
+                    if ewg_num not in index['erwägungsgrund']:
+                        index['erwägungsgrund'][ewg_num] = []
+                    index['erwägungsgrund'][ewg_num].append(chunk)
+                    logger.debug(f"   ✅ EWG {ewg_num} indexiert ({metadata.get('source_law')})")
+                else:
+                    logger.warning(f"   ⚠️ EWG-Nummer nicht gefunden in Chunk: {chunk.page_content[:100]}...")
+            
+            # Index für Anhänge
+            if 'anhang' in source_type:
+                for key in ['Anhang', 'anhang']:
+                    if key in metadata:
+                        anhang_value = str(metadata[key]).lower()
+                        match = re.search(r'anhang\s+([ivxIVX]+|\d+)', anhang_value)
+                        
+                        if match:
+                            anhang_num = self._normalize_number(match.group(1))
+                            if anhang_num not in index['anhang']:
+                                index['anhang'][anhang_num] = []
+                            index['anhang'][anhang_num].append(chunk)
                         break
         
         return index
     
+    def _get_index_stats(self) -> str:
+        """Statistik über den Index für Logging"""
+        stats = []
+        for key, sub_index in self.metadata_index.items():
+            count = len(sub_index)
+            if count > 0:
+                stats.append(f"{key}={count}")
+        return ", ".join(stats)
+    
+    def _normalize_number(self, num_str: str) -> str:
+        """Konvertiere römische zu arabischen Zahlen"""
+        roman_to_arabic = {
+            'i': '1', 'ii': '2', 'iii': '3', 'iv': '4', 'v': '5',
+            'vi': '6', 'vii': '7', 'viii': '8', 'ix': '9', 'x': '10'
+        }
+        return roman_to_arabic.get(num_str.strip().lower(), num_str)
+    
     def retrieve_by_metadata(self, extracted_references: Dict[str, Any], k: int = 5) -> List[Document]:
+        """✅ FIX 2: Mit Validierung der gefundenen Dokumente"""
+        logger.info(f"🔍 Keyword-Suche: {extracted_references}")
         results = []
         
         # Artikel suchen
         if 'artikel' in extracted_references:
             for artikel_num in extracted_references['artikel']:
+                logger.info(f"   📌 Suche Artikel {artikel_num}...")
                 if str(artikel_num) in self.metadata_index['artikel']:
-                    results.extend(self.metadata_index['artikel'][str(artikel_num)])
+                    found_docs = self.metadata_index['artikel'][str(artikel_num)]
+                    logger.info(f"   ✅ {len(found_docs)} Chunks gefunden")
+                    results.extend(found_docs)
+                else:
+                    logger.warning(f"   ❌ Artikel {artikel_num} NICHT im Index!")
         
-        # Erwägungsgründe suchen
+        # ✅ FIX 2: Erwägungsgründe suchen MIT VALIDIERUNG
         if 'erwägungsgrund' in extracted_references:
             for ewg_num in extracted_references['erwägungsgrund']:
+                logger.info(f"   📌 Suche EWG {ewg_num}...")
+                
                 if str(ewg_num) in self.metadata_index['erwägungsgrund']:
-                    results.extend(self.metadata_index['erwägungsgrund'][str(ewg_num)])
+                    found_docs = self.metadata_index['erwägungsgrund'][str(ewg_num)]
+                    logger.info(f"   ✅ {len(found_docs)} Chunks im Index gefunden")
+                    
+                    # ✅ NEU: Validiere dass EWG wirklich im Content ist
+                    validated_docs = []
+                    for doc in found_docs:
+                        if self._validate_ewg_in_content(doc, ewg_num):
+                            validated_docs.append(doc)
+                            logger.debug(f"      ✓ EWG {ewg_num} validiert in Chunk")
+                        else:
+                            logger.warning(f"      ⚠️ EWG {ewg_num} im Index, aber NICHT im Content!")
+                    
+                    if validated_docs:
+                        results.extend(validated_docs)
+                        logger.info(f"   ✅ {len(validated_docs)} validierte Chunks")
+                    else:
+                        logger.error(f"   ❌ EWG {ewg_num} im Index, aber keine validierten Chunks!")
+                else:
+                    logger.warning(f"   ❌ EWG {ewg_num} NICHT im Index!")
         
+        # Anhänge suchen
+        if 'anhang' in extracted_references:
+            for anhang_num in extracted_references['anhang']:
+                logger.info(f"   📌 Suche Anhang {anhang_num}...")
+                normalized = self._normalize_number(anhang_num)
+                if normalized in self.metadata_index['anhang']:
+                    found_docs = self.metadata_index['anhang'][normalized]
+                    logger.info(f"   ✅ {len(found_docs)} Chunks gefunden")
+                    results.extend(found_docs)
+                else:
+                    logger.warning(f"   ❌ Anhang {anhang_num} NICHT im Index!")
+        
+        # Deduplizieren
         unique_results = []
         seen = set()
         
@@ -305,7 +422,28 @@ class KeywordMetadataRetriever:
                 if len(unique_results) >= k:
                     break
         
+        logger.info(f"🎯 Keyword-Retrieval: {len(unique_results)} eindeutige Dokumente")
         return unique_results
+    
+    def _validate_ewg_in_content(self, doc: Document, ewg_num: str) -> bool:
+        """✅ FIX 2: Validiere dass EWG-Nummer wirklich im Content steht"""
+        content = doc.page_content.lower()
+        
+        # Validierungs-Patterns (müssen im Content vorkommen)
+        patterns = [
+            rf'erwägungsgrund\s+{ewg_num}\b',
+            rf'\({ewg_num}\)',
+            rf'ewg\s+{ewg_num}\b',
+            rf'recital\s+{ewg_num}\b',
+            rf'#\s*erwägungsgrund\s+{ewg_num}',
+            rf'#\s*\({ewg_num}\)',
+        ]
+        
+        for pattern in patterns:
+            if re.search(pattern, content, re.IGNORECASE):
+                return True
+        
+        return False
 
 
 # ==============================================================================
@@ -412,7 +550,7 @@ class DefinitionsRetriever:
 
 
 # ==============================================================================
-# TRIPLE PIPELINE MANAGER
+# TRIPLE PIPELINE MANAGER - ✅ FIX 3
 # ==============================================================================
 
 class TriplePipelineManager:
@@ -437,24 +575,34 @@ class TriplePipelineManager:
         self.definitions_retriever = definitions_retriever
     
     def process_query(self, query: str, filter_law: Optional[str] = None) -> Dict[str, Any]:
+        logger.info(f"\n{'='*70}")
+        logger.info(f"📥 NEUE ANFRAGE: {query}")
+        logger.info(f"{'='*70}")
+        
         needs_context = self._needs_conversation_context(query)
         
         if needs_context:
+            logger.info("🔵 Pipeline: SEMANTIC (Kontext benötigt)")
             return self._handle_semantic(query, filter_law)
         
         analysis = self.router.analyze_query(query)
+        logger.info(f"🎯 Query-Analyse: {analysis.pipeline_type.value} (Confidence: {analysis.confidence:.2f})")
+        logger.info(f"   Erkannte Referenzen: {analysis.extracted_references}")
         
         if analysis.pipeline_type in [
             PipelineType.DEFINITIONS_KI_VO,
             PipelineType.DEFINITIONS_DSGVO,
             PipelineType.DEFINITIONS_GENERIC
         ]:
+            logger.info("🟡 Pipeline: DEFINITIONS")
             return self._handle_definitions(query, analysis)
         
         elif analysis.pipeline_type == PipelineType.KEYWORD_METADATA:
+            logger.info("🟢 Pipeline: KEYWORD/METADATA")
             return self._handle_keyword_metadata(query, analysis, filter_law)
         
         else:
+            logger.info("🔵 Pipeline: SEMANTIC (Default)")
             return self._handle_semantic(query, filter_law)
     
     def _needs_conversation_context(self, query: str) -> bool:
@@ -476,10 +624,15 @@ class TriplePipelineManager:
         term = analysis.extracted_references.get('term')
         law = analysis.extracted_references.get('law')
         
+        logger.info(f"🔍 Definitions-Suche: Term='{term}', Law='{law}'")
+        
         docs = self.definitions_retriever.retrieve_definition(term, law, k=2)
         
         if not docs:
+            logger.warning(f"⚠️ Keine Definition gefunden für '{term}' - Fallback zu Semantic")
             return self._handle_semantic(query, law)
+        
+        logger.info(f"✅ {len(docs)} Definitions-Chunks gefunden")
         
         context = "\n\n".join([
             f"📖 DEFINITION aus {doc.metadata.get('source_law')} {doc.metadata.get('artikel')}:\n{doc.page_content}"
@@ -537,6 +690,7 @@ DEINE ANTWORT:"""
         }
     
     def _handle_keyword_metadata(self, query: str, analysis: QueryAnalysis, filter_law: Optional[str]) -> Dict[str, Any]:
+        """✅ FIX 3: Mit Fallback zu Semantic Search"""
         
         docs = self.keyword_retriever.retrieve_by_metadata(
             analysis.extracted_references,
@@ -545,10 +699,102 @@ DEINE ANTWORT:"""
         
         if filter_law and docs:
             docs = [d for d in docs if d.metadata.get('source_law') == filter_law]
+            logger.info(f"   Filter '{filter_law}' angewendet: {len(docs)} Docs übrig")
         
+        # ✅ FIX 3: Prüfe ob wir wirklich etwas gefunden haben
         if not docs:
-            return self._handle_semantic(query, filter_law)
+            logger.warning("❌ Keyword-Retrieval fand NICHTS - Fallback zu Semantic Search")
+            
+            # Generiere hilfreiche Fehlermeldung
+            missing_refs = []
+            if 'artikel' in analysis.extracted_references:
+                missing_refs.append(f"Artikel {', '.join(analysis.extracted_references['artikel'])}")
+            if 'erwägungsgrund' in analysis.extracted_references:
+                missing_refs.append(f"EWG {', '.join(analysis.extracted_references['erwägungsgrund'])}")
+            if 'anhang' in analysis.extracted_references:
+                missing_refs.append(f"Anhang {', '.join(analysis.extracted_references['anhang'])}")
+            
+            missing_str = " & ".join(missing_refs)
+            
+            # Semantic Search als Fallback
+            semantic_result = self._handle_semantic(query, filter_law)
+            
+            # Füge Info hinzu, dass Keyword fehlschlug
+            semantic_result['result'] = (
+                f"ℹ️ *Hinweis: {missing_str} konnte nicht direkt gefunden werden. "
+                f"Hier ist eine semantische Suche zum Thema:*\n\n" +
+                semantic_result['result']
+            )
+            semantic_result['pipeline_used'] = 'keyword_metadata_fallback_to_semantic'
+            
+            return semantic_result
         
+        # ✅ FIX 3: Validiere bei EWG-Suche, dass wir die richtigen gefunden haben
+        if 'erwägungsgrund' in analysis.extracted_references:
+            requested_ewgs = set(analysis.extracted_references['erwägungsgrund'])
+            found_ewgs = set()
+            
+            for doc in docs:
+                for ewg_num in requested_ewgs:
+                    if self.keyword_retriever._validate_ewg_in_content(doc, str(ewg_num)):
+                        found_ewgs.add(str(ewg_num))
+            
+            missing_ewgs = requested_ewgs - found_ewgs
+            
+            if missing_ewgs:
+                logger.warning(f"⚠️ Nicht alle EWGs gefunden. Fehlt: {missing_ewgs}")
+                
+                # Teilweise gefunden - gib Info und nutze Semantic als Ergänzung
+                if found_ewgs:
+                    logger.info(f"✅ Gefunden: {found_ewgs} - Ergänze mit Semantic")
+                    
+                    # Nutze gefundene Docs + Semantic
+                    semantic_result = self._handle_semantic(query, filter_law)
+                    
+                    # Kombiniere Ergebnisse
+                    context_keyword = "\n\n".join([doc.page_content for doc in docs])
+                    context_semantic = "\n\n".join([doc.page_content for doc in semantic_result.get('source_documents', [])])
+                    
+                    combined_context = f"**GEFUNDENE ERWÄGUNGSGRÜNDE:**\n{context_keyword}\n\n**WEITERE RELEVANTE INFORMATIONEN:**\n{context_semantic}"
+                    
+                    # Generiere kombinierte Antwort
+                    chat_history = self._get_chat_history_text()
+                    
+                    prompt = f"""{chat_history}
+
+Du bist Rechtsexperte. Der Nutzer fragt nach Erwägungsgründen.
+
+WICHTIG:
+- Wir haben nur TEILWEISE die gesuchten EWGs gefunden: {found_ewgs}
+- FEHLEN: {missing_ewgs}
+- Gib ZUERST die gefundenen EWGs vollständig wieder
+- Erwähne dann transparent, welche fehlen
+- Nutze die zusätzlichen Informationen um zu helfen
+
+GEFUNDENER KONTEXT:
+{combined_context}
+
+FRAGE: {query}
+
+ANTWORT:"""
+                    
+                    response = self.llm.invoke(prompt)
+                    self._save_to_memory(query, response.content)
+                    
+                    return {
+                        'result': response.content,
+                        'source_documents': docs + semantic_result.get('source_documents', [])[:2],
+                        'pipeline_used': 'keyword_metadata_partial_with_semantic'
+                    }
+                
+                else:
+                    # NICHTS gefunden - kompletter Fallback
+                    logger.warning("❌ Keine EWGs validiert - kompletter Fallback zu Semantic")
+                    semantic_result = self._handle_semantic(query, filter_law)
+                    semantic_result['pipeline_used'] = 'keyword_metadata_failed_semantic_fallback'
+                    return semantic_result
+        
+        # Alles gut gefunden - normale Verarbeitung
         context = "\n\n".join([doc.page_content for doc in docs])
         chat_history = self._get_chat_history_text()
         
@@ -557,36 +803,36 @@ DEINE ANTWORT:"""
             ewg_nums = ', '.join(map(str, analysis.extracted_references['erwägungsgrund']))
             prompt = f"""{chat_history}
     
-    Du bist Rechtsexperte. Der Nutzer möchte den Erwägungsgrund {ewg_nums} sehen.
-    
-    WICHTIG - STRUKTUR BEFOLGEN:
-    
-    1. ZUERST: Gib den VOLLSTÄNDIGEN Originaltext in Anführungszeichen wieder:
-       "Erwägungsgrund {ewg_nums}
-       
-       [KOMPLETTER ORIGINALTEXT]"
-       
-       (Quelle: KI-VO EWG {ewg_nums})
-    
-    2. DANN: Erkläre in 3-5 Sätzen:
-       - Was ist der Hintergrund?
-       - Warum wurde dieser Erwägungsgrund aufgenommen?
-       - Nutze ein praktisches Beispiel
-    
-    3. Stelle eine weiterführende Frage
-    
-    4. Liste Quellen auf
-    
-    GEFUNDENER KONTEXT:
-    {context}
-    
-    REGEL:
-    - Wenn EWG {ewg_nums} im Kontext → Gib ihn VOLLSTÄNDIG wieder
-    - Wenn nicht → Sage: "Ich finde den Erwägungsgrund {ewg_nums} nicht."
-    
-    FRAGE: {query}
-    
-    ANTWORT:"""
+Du bist Rechtsexperte. Der Nutzer möchte den Erwägungsgrund {ewg_nums} sehen.
+
+WICHTIG - STRUKTUR BEFOLGEN:
+
+1. ZUERST: Gib den VOLLSTÄNDIGEN Originaltext in Anführungszeichen wieder:
+   "Erwägungsgrund {ewg_nums}
+   
+   [KOMPLETTER ORIGINALTEXT]"
+   
+   (Quelle: [Gesetz] EWG {ewg_nums})
+
+2. DANN: Erkläre in 3-5 Sätzen:
+   - Was ist der Hintergrund?
+   - Warum wurde dieser Erwägungsgrund aufgenommen?
+   - Nutze ein praktisches Beispiel
+
+3. Stelle eine weiterführende Frage
+
+4. Liste Quellen auf
+
+GEFUNDENER KONTEXT:
+{context}
+
+REGEL:
+- Wenn EWG {ewg_nums} im Kontext → Gib ihn VOLLSTÄNDIG wieder
+- Wenn nicht → Sage: "Ich finde den Erwägungsgrund {ewg_nums} nicht."
+
+FRAGE: {query}
+
+ANTWORT:"""
 
             response = self.llm.invoke(prompt)
             
@@ -595,38 +841,38 @@ DEINE ANTWORT:"""
             anhang_nums = ', '.join(map(str, analysis.extracted_references['anhang']))
             prompt = f"""{chat_history}
     
-    Du bist Rechtsexperte. Der Nutzer möchte Anhang {anhang_nums} sehen.
-    
-    WICHTIG - STRUKTUR BEFOLGEN:
-    
-    1. ZUERST: Gib den VOLLSTÄNDIGEN Originaltext in Anführungszeichen wieder:
-       "Anhang {anhang_nums} der KI-Verordnung
-       
-       [KOMPLETTER ORIGINALTEXT MIT ALLEN PUNKTEN]"
-       
-       (Quelle: KI-VO Anhang {anhang_nums})
-    
-    2. DANN: Erkläre in 3-5 Sätzen:
-       - Wofür ist dieser Anhang gedacht?
-       - Welche praktische Bedeutung hat er?
-       - Für wen ist er relevant?
-       - Nutze ein konkretes Beispiel
-    
-    3. Stelle eine weiterführende Frage
-    
-    4. Liste Quellen auf
-    
-    GEFUNDENER KONTEXT:
-    {context}
-    
-    REGEL:
-    - VOLLSTÄNDIGER Originaltext mit allen Unterpunkten
-    - Keine Kürzung, keine Zusammenfassung beim Originaltext
-    - Wenn nicht gefunden → Sage: "Ich finde Anhang {anhang_nums} nicht."
-    
-    FRAGE: {query}
-    
-    ANTWORT:"""
+Du bist Rechtsexperte. Der Nutzer möchte Anhang {anhang_nums} sehen.
+
+WICHTIG - STRUKTUR BEFOLGEN:
+
+1. ZUERST: Gib den VOLLSTÄNDIGEN Originaltext in Anführungszeichen wieder:
+   "Anhang {anhang_nums} der KI-Verordnung
+   
+   [KOMPLETTER ORIGINALTEXT MIT ALLEN PUNKTEN]"
+   
+   (Quelle: KI-VO Anhang {anhang_nums})
+
+2. DANN: Erkläre in 3-5 Sätzen:
+   - Wofür ist dieser Anhang gedacht?
+   - Welche praktische Bedeutung hat er?
+   - Für wen ist er relevant?
+   - Nutze ein konkretes Beispiel
+
+3. Stelle eine weiterführende Frage
+
+4. Liste Quellen auf
+
+GEFUNDENER KONTEXT:
+{context}
+
+REGEL:
+- VOLLSTÄNDIGER Originaltext mit allen Unterpunkten
+- Keine Kürzung, keine Zusammenfassung beim Originaltext
+- Wenn nicht gefunden → Sage: "Ich finde Anhang {anhang_nums} nicht."
+
+FRAGE: {query}
+
+ANTWORT:"""
             response = self.llm.invoke(prompt)
             
         # ARTIKEL
@@ -634,92 +880,92 @@ DEINE ANTWORT:"""
             artikel_nums = ', '.join(map(str, analysis.extracted_references['artikel']))
             prompt = f"""{chat_history}
     
-    Du bist Rechtsexperte. Der Nutzer möchte Artikel {artikel_nums} sehen.
-    
-    WICHTIG - STRUKTUR BEFOLGEN:
-    
-    1. ZUERST: Gib den VOLLSTÄNDIGEN Originaltext in Anführungszeichen wieder:
-       "Artikel {artikel_nums}
-       
-       [KOMPLETTER ORIGINALTEXT MIT ALLEN ABSÄTZEN]"
-       
-       (Quelle: KI-VO Art. {artikel_nums})
-    
-    2. DANN: Erkläre in 3-5 Sätzen:
-       - Was regelt dieser Artikel?
-       - Für wen gilt er?
-       - Was sind die praktischen Konsequenzen?
-       - Nutze ein konkretes Beispiel
-    
-    3. Stelle eine weiterführende Frage
-    
-    4. Liste Quellen auf
-    
-    BEISPIEL-FORMAT:
-    
-    "Artikel 10 - Datenqualität und Datenverwaltung
-    
-    (1) Hochrisiko-KI-Systeme, die Techniken für Modelle einsetzen, die mit Daten trainiert werden, werden auf der Grundlage von Trainings-, Validierungs- und Testdatensätzen entwickelt, die den Qualitätskriterien der Absätze 2 bis 5 genügen.
-    
-    (2) [...]"
-    
-    (KI-VO Art. 10)
-    
-    Dieser Artikel legt fest, dass Hochrisiko-KI-Systeme mit qualitativ hochwertigen Daten trainiert werden müssen. Praktisch bedeutet das: Ein KI-System zur Kreditwürdigkeitsprüfung muss mit repräsentativen Daten trainiert werden.
-    
-    Möchten Sie wissen, welche konkreten Qualitätskriterien gelten?
-    
-    ---
-    § Verwendete Quellen:
-    - KI-VO Art. 10
-    
-    GEFUNDENER KONTEXT:
-    {context}
-    
-    REGEL:
-    - VOLLSTÄNDIGER Originaltext mit allen Absätzen
-    - Keine Kürzung beim Originaltext
-    - Wenn nicht gefunden → Sage: "Ich finde Artikel {artikel_nums} nicht."
-    
-    FRAGE: {query}
-    
-    ANTWORT:"""
+Du bist Rechtsexperte. Der Nutzer möchte Artikel {artikel_nums} sehen.
+
+WICHTIG - STRUKTUR BEFOLGEN:
+
+1. ZUERST: Gib den VOLLSTÄNDIGEN Originaltext in Anführungszeichen wieder:
+   "Artikel {artikel_nums}
+   
+   [KOMPLETTER ORIGINALTEXT MIT ALLEN ABSÄTZEN]"
+   
+   (Quelle: [Gesetz] Art. {artikel_nums})
+
+2. DANN: Erkläre in 3-5 Sätzen:
+   - Was regelt dieser Artikel?
+   - Für wen gilt er?
+   - Was sind die praktischen Konsequenzen?
+   - Nutze ein konkretes Beispiel
+
+3. Stelle eine weiterführende Frage
+
+4. Liste Quellen auf
+
+BEISPIEL-FORMAT:
+
+"Artikel 10 - Datenqualität und Datenverwaltung
+
+(1) Hochrisiko-KI-Systeme, die Techniken für Modelle einsetzen, die mit Daten trainiert werden, werden auf der Grundlage von Trainings-, Validierungs- und Testdatensätzen entwickelt, die den Qualitätskriterien der Absätze 2 bis 5 genügen.
+
+(2) [...]"
+
+(KI-VO Art. 10)
+
+Dieser Artikel legt fest, dass Hochrisiko-KI-Systeme mit qualitativ hochwertigen Daten trainiert werden müssen. Praktisch bedeutet das: Ein KI-System zur Kreditwürdigkeitsprüfung muss mit repräsentativen Daten trainiert werden.
+
+Möchten Sie wissen, welche konkreten Qualitätskriterien gelten?
+
+---
+§ Verwendete Quellen:
+- KI-VO Art. 10
+
+GEFUNDENER KONTEXT:
+{context}
+
+REGEL:
+- VOLLSTÄNDIGER Originaltext mit allen Absätzen
+- Keine Kürzung beim Originaltext
+- Wenn nicht gefunden → Sage: "Ich finde Artikel {artikel_nums} nicht."
+
+FRAGE: {query}
+
+ANTWORT:"""
             response = self.llm.invoke(prompt)
             
         else:
             # Fallback
             prompt = f"""{chat_history}
     
-    Du bist Rechtsexperte. Der Nutzer fragt nach einem Rechtstext.
-    
-    1. Gib den relevanten Originaltext vollständig in Anführungszeichen wieder
-    2. Erkläre die Bedeutung
-    3. Stelle eine Frage
-    4. Liste Quellen auf
-    
-    GEFUNDENER KONTEXT:
-    {context}
-    
-    FRAGE: {query}
-    
-    ANTWORT:"""
+Du bist Rechtsexperte. Der Nutzer fragt nach einem Rechtstext.
+
+1. Gib den relevanten Originaltext vollständig in Anführungszeichen wieder
+2. Erkläre die Bedeutung
+3. Stelle eine Frage
+4. Liste Quellen auf
+
+GEFUNDENER KONTEXT:
+{context}
+
+FRAGE: {query}
+
+ANTWORT:"""
         
             response = self.llm.invoke(prompt)
             
         self._save_to_memory(query, response.content)
+        
+        logger.info("✅ Keyword-Metadata Pipeline erfolgreich")
         
         return {
             'result': response.content,
             'source_documents': docs,
             'pipeline_used': 'keyword_metadata'
         }
-
-        
-    
-    # HIER EINFÜGEN! ↓↓↓
     
     def _handle_semantic(self, query: str, filter_law: Optional[str]) -> Dict[str, Any]:
         """Semantic Search Pipeline - nutzt den QA Chain"""
+        logger.info("🔵 Semantic Pipeline gestartet")
+        
         try:
             result = self.qa_chain({"question": query})
             
@@ -727,6 +973,9 @@ DEINE ANTWORT:"""
             
             if filter_law and docs:
                 docs = [d for d in docs if d.metadata.get('source_law') == filter_law]
+                logger.info(f"   Filter '{filter_law}' angewendet: {len(docs)} Docs")
+            
+            logger.info(f"✅ Semantic Pipeline: {len(docs)} Quellen verwendet")
             
             return {
                 'result': result.get('answer', ''),
@@ -734,12 +983,12 @@ DEINE ANTWORT:"""
                 'pipeline_used': 'semantic'
             }
         except Exception as e:
+            logger.error(f"❌ Semantic Pipeline Fehler: {str(e)}")
             return {
                 'result': f"Entschuldigung, bei der Verarbeitung ist ein Fehler aufgetreten: {str(e)}",
                 'source_documents': [],
                 'pipeline_used': 'semantic_error'
             }
-
     
     def _get_chat_history_text(self) -> str:
         messages = self.qa_chain.memory.chat_memory.messages
@@ -794,7 +1043,7 @@ class RAGBackend:
     
     def setup(self, document_paths: Dict[str, str]):
         print("\n" + "="*70)
-        print("🔧 VOLLSTÄNDIGES SETUP MIT TRIPLE PIPELINE")
+        print("🔧 VOLLSTÄNDIGES SETUP MIT TRIPLE PIPELINE + FIXES")
         print("="*70)
         
         try:
@@ -822,8 +1071,9 @@ class RAGBackend:
             self.initialized = True
             print("\n✅ VOLLSTÄNDIGES SETUP ABGESCHLOSSEN!")
             print("   🔵 Pipeline 1: Semantic Search")
-            print("   🟢 Pipeline 2: Keyword/Metadata")
+            print("   🟢 Pipeline 2: Keyword/Metadata (✅ VERBESSERT)")
             print("   🟡 Pipeline 3: Definitions")
+            print("   📊 Logging: AKTIV")
             
         except Exception as e:
             print(f"\n❌ FEHLER: {e}")
@@ -881,6 +1131,15 @@ class RAGBackend:
             for chunk in chunks:
                 chunk.metadata['source_type'] = 'Erwägungsgründe'
                 chunk.metadata['source_law'] = 'KI-Verordnung'
+                
+                # ✅ FIX: Extrahiere EWG-Nummer und speichere in Metadata
+                ewg_match = re.search(r'Erwägungsgrund\s+(\d+)', chunk.page_content, re.IGNORECASE)
+                if not ewg_match:
+                    ewg_match = re.search(r'#\s*\((\d+)\)', chunk.page_content)
+                
+                if ewg_match:
+                    chunk.metadata['ewg_nummer'] = ewg_match.group(1)
+                    chunk.metadata['artikel'] = f"EWG {ewg_match.group(1)}"
             
             all_chunks.extend(chunks)
             print(f"      ✅ {len(chunks)} Chunks")
@@ -937,6 +1196,17 @@ class RAGBackend:
             for chunk in chunks:
                 chunk.metadata['source_type'] = 'Erwägungsgründe'
                 chunk.metadata['source_law'] = 'DSGVO'
+                
+                # ✅ FIX: Extrahiere EWG-Nummer und speichere in Metadata
+                ewg_match = re.search(r'Erwägungsgrund\s+(\d+)', chunk.page_content, re.IGNORECASE)
+                if not ewg_match:
+                    ewg_match = re.search(r'#\s*\((\d+)\)', chunk.page_content)
+                if not ewg_match:
+                    ewg_match = re.search(r'^\((\d+)\)', chunk.page_content, re.MULTILINE)
+                
+                if ewg_match:
+                    chunk.metadata['ewg_nummer'] = ewg_match.group(1)
+                    chunk.metadata['artikel'] = f"EWG {ewg_match.group(1)}"
             
             all_chunks.extend(chunks)
             print(f"      ✅ {len(chunks)} Chunks")
@@ -1091,7 +1361,7 @@ ANTWORT:
         # Router
         advanced_router = AdvancedQueryRouter(DEFINED_TERMS_KI_VO, DEFINED_TERMS_DSGVO)
         
-        # Keyword Retriever
+        # Keyword Retriever - ✅ MIT FIXES
         keyword_retriever = KeywordMetadataRetriever(self.vectorstore, self.all_chunks)
         
         # Definitions Retriever
@@ -1103,7 +1373,7 @@ ANTWORT:
             self.embeddings
         )
         
-        # Triple Pipeline Manager
+        # Triple Pipeline Manager - ✅ MIT FIXES
         self.triple_pipeline = TriplePipelineManager(
             vectorstore=self.vectorstore,
             qdrant_client=self.qdrant_client,
@@ -1115,7 +1385,7 @@ ANTWORT:
             definitions_retriever=definitions_retriever
         )
         
-        print("   ✅ Triple Pipeline bereit")
+        print("   ✅ Triple Pipeline bereit (mit Fixes 1, 2, 3)")
     
     def query(
         self,
