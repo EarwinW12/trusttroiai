@@ -10,11 +10,14 @@ st.set_page_config(
 )
 
 # ============================================================================
-# CSS - LEGAL THEME
+# CSS - LEGAL THEME - ✅ ANGEPASSTE FARBEN
 # ============================================================================
 
-# Legal Theme Colors
-bg_color = "#FFFAF2"
+# ✅ NEUE Farben
+bg_color = "#fff6e6"  # ✅ NEU: Haupthintergrund
+sidebar_bg = "#f5e5c9"  # ✅ NEU: Sidebar-Hintergrund
+
+# Bestehende Farben
 trust_color = "#011734"
 troiai_color = "#84352C"
 beta_color = "#011734"
@@ -35,9 +38,21 @@ st.markdown(f"""
         font-family: 'Times New Roman', 'Crimson Text', serif;
     }}
     
+    /* ✅ NEU: Haupthintergrund */
     .main {{
-        background-color: {bg_color};
+        background-color: {bg_color} !important;
         color: {text_primary};
+    }}
+    
+    /* ✅ NEU: Sidebar-Hintergrund */
+    [data-testid="stSidebar"] {{
+        background-color: {sidebar_bg} !important;
+        border-right: 2px solid {border_color};
+    }}
+    
+    /* ✅ NEU: Sidebar-Content auch mit neuem Hintergrund */
+    [data-testid="stSidebar"] > div:first-child {{
+        background-color: {sidebar_bg} !important;
     }}
     
     .legal-header {{
@@ -142,11 +157,6 @@ st.markdown(f"""
         box-shadow: 0 4px 12px rgba(132, 53, 44, 0.2) !important;
         transform: translateY(-2px) !important;
         background-color: {card_bg} !important;
-    }}
-    
-    [data-testid="stSidebar"] {{
-        background-color: {suggestion_card_bg};
-        border-right: 2px solid {border_color};
     }}
     
     [data-testid="stSidebar"] .stButton > button {{
@@ -381,7 +391,7 @@ def init_backend(_api_key, _doc_paths):
     return backend
 
 # ============================================================================
-# DASHBOARD
+# DASHBOARD - ✅ ENTFERNT: Dashboard und Assistant Kacheln
 # ============================================================================
 
 def show_dashboard():
@@ -403,46 +413,14 @@ def show_dashboard():
     
     user = st.session_state.get("current_user", "User")
     st.markdown(f"### 👋 Willkommen, {user}!")
-    st.markdown("Wählen Sie das gewünschte Tool:")
     
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    col1, col2 = st.columns(2, gap="large")
-    
-    with col1:
-        st.markdown("""
-        <div class="tool-card">
-            <div>
-                <div class="tool-icon">💬</div>
-                <div class="tool-title">KI-Verordnung & DSGVO Assistant</div>
-                <div class="tool-description">
-                    Stelle Fragen zur KI-Verordnung und DSGVO. Erhalte fundierte Antworten mit Quellenangaben und Rechtstexten.
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button("🚀 Zum Assistant", use_container_width=True, key="goto_assistant", type="primary"):
-            switch_page("assistant")
-    
-    with col2:
-        st.markdown("""
-        <div class="tool-card tool-card-disabled">
-            <div>
-                <div class="tool-icon">🔍</div>
-                <div class="tool-title">Compliance Checker</div>
-                <div class="tool-description">
-                    Prüfe deine Compliance mit der KI-Verordnung und DSGVO. Erhalte konkrete Handlungsempfehlungen.
-                </div>
-                <div class="coming-soon">🚧 Coming Soon</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.button("🔍 Zum Compliance Checker", use_container_width=True, key="goto_checker", disabled=True)
+    # ✅ DIREKTE WEITERLEITUNG ZUM ASSISTANT
+    # Statt Kacheln zu zeigen, gehe direkt zum Assistant
+    st.info("🚀 Sie werden zum Assistant weitergeleitet...")
+    switch_page("assistant")
 
 # ============================================================================
-# SIDEBAR
+# SIDEBAR - ✅ ENTFERNT: Dashboard und Assistant Buttons
 # ============================================================================
 
 def show_sidebar(current_page="assistant"):
@@ -461,16 +439,10 @@ def show_sidebar(current_page="assistant"):
         
         st.divider()
         
-        st.markdown("### 📍 Navigation")
+        # ✅ ENTFERNT: Kein "Dashboard" oder "Assistant" Button mehr
+        # ✅ ENTFERNT: Compliance Checker bleibt als "Coming Soon"
         
-        if st.button("🏠 Dashboard", use_container_width=True, key="nav_dashboard"):
-            st.session_state.current_page = None
-            st.rerun()
-        
-        assistant_type = "primary" if current_page == "assistant" else "secondary"
-        if st.button("💬 Assistant", use_container_width=True, key="nav_assistant", type=assistant_type):
-            switch_page("assistant")
-        
+        st.markdown("### 🔍 Tools")
         st.button("🔍 Compliance Checker", use_container_width=True, key="nav_checker", disabled=True)
         st.caption("🚧 Coming Soon")
         
@@ -634,10 +606,13 @@ def show_assistant_page():
     st.markdown('<div class="disclaimer">⚠️ TrustTroiAI dient ausschließlich Informationszwecken und ersetzt keine Rechtsberatung.</div>', unsafe_allow_html=True)
 
 # ============================================================================
-# ROUTING
+# ROUTING - ✅ DIREKT ZUM ASSISTANT
 # ============================================================================
 
+# ✅ VEREINFACHT: Keine Dashboard-Anzeige mehr, direkt zum Assistant
 if st.session_state.current_page is None:
-    show_dashboard()
+    # Setze direkt auf Assistant statt Dashboard zu zeigen
+    st.session_state.current_page = "assistant"
+    st.rerun()
 elif st.session_state.current_page == "assistant":
     show_assistant_page()
