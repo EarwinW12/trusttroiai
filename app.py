@@ -15,7 +15,7 @@ st.set_page_config(
 
 # ✅ NEUE Farben (Claude.ai Style - harmonisch)
 bg_color = "#fff6e6"  # ✅ NEU: Haupthintergrund
-sidebar_bg = "#fdf3dd"  # ✅ NEU: Sidebar (nur minimal dunkler als Hauptbereich)
+sidebar_bg = "#fff6e8"  # ✅ NEU: Sidebar (nur minimal dunkler als Hauptbereich)
 
 # Bestehende Farben
 trust_color = "#011734"
