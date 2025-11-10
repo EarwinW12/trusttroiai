@@ -13,9 +13,9 @@ st.set_page_config(
 # CSS - LEGAL THEME - ✅ ANGEPASSTE FARBEN
 # ============================================================================
 
-# ✅ NEUE Farben
+# ✅ NEUE Farben (Claude.ai Style - harmonisch)
 bg_color = "#fff6e6"  # ✅ NEU: Haupthintergrund
-sidebar_bg = "#f5e5c9"  # ✅ NEU: Sidebar-Hintergrund
+sidebar_bg = "#fdf3dd"  # ✅ NEU: Sidebar (nur minimal dunkler als Hauptbereich)
 
 # Bestehende Farben
 trust_color = "#011734"
