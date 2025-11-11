@@ -1,7 +1,8 @@
 import streamlit as st
 from rag_backend import get_rag_backend
 import os
-
+import time
+import random
 
 st.set_page_config(
     page_title="TrustTroiAI",
@@ -11,12 +12,17 @@ st.set_page_config(
 )
 
 # ============================================================================
-# CSS - LEGAL THEME - ✅ ANGEPASSTE FARBEN
+# CACHE BUSTER - ERZWINGT NEUE CSS-LADUNG
+# ============================================================================
+CACHE_BUSTER = f"{time.time()}_{random.randint(1000, 9999)}"
+
+# ============================================================================
+# CSS - LEGAL THEME - ✅ VERSION 3.1 - NEUE FARBEN
 # ============================================================================
 
-# ✅ NEUE Farben (noch harmonischer - fast identisch)
-bg_color = "#fff6e6"  # ✅ NEU: Haupthintergrund
-sidebar_bg = "#fff4e0"  # ✅ NEU: Sidebar (nur ganz minimal dunkler)
+# ✅ FINALE Farben (v3.1 - GARANTIERT NEUE VERSION!)
+bg_color = "#fff6e6"  # ✅ Haupthintergrund (warm)
+sidebar_bg = "#fff6e6"  # ✅ GLEICHE FARBE wie Main! (Teste ob Änderungen wirken)
 
 # Bestehende Farben
 trust_color = "#011734"
@@ -33,6 +39,10 @@ suggestion_card_text = "#011734"
 
 st.markdown(f"""
 <style>
+    /* ⚠️ VERSION 3.1 - CACHE BUSTER: {CACHE_BUSTER} ⚠️ */
+    /* WENN DU DAS SIEHST, IST DIE NEUE VERSION GELADEN! */
+    /* Main: {bg_color} | Sidebar: {sidebar_bg} */
+    
     @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&display=swap');
     
     * {{
@@ -480,6 +490,11 @@ def show_sidebar(current_page="assistant"):
                     if 'backend' in st.session_state and st.session_state.backend:
                         stats = st.session_state.backend.get_memory_stats()
                         st.json(stats)
+            
+            # ✅ VERSION-ANZEIGE (damit du siehst ob neue Version läuft)
+            st.divider()
+            st.caption(f"🎨 Version 3.1 | Cache: {CACHE_BUSTER[:8]}")
+            st.caption(f"📊 Farben: Main={bg_color}, Sidebar={sidebar_bg}")
             
             return api_key, filter_law, show_sources
         
