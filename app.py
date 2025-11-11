@@ -20,9 +20,9 @@ CACHE_BUSTER = f"{time.time()}_{random.randint(1000, 9999)}"
 # CSS - LEGAL THEME - ✅ VERSION 3.1 - NEUE FARBEN
 # ============================================================================
 
-# ✅ FINALE Farben (v3.3 - IDENTISCH!)
+# ✅ FINALE Farben (v3.6 - ULTRA-AGGRESSIVE + Dashboard zurück!)
 bg_color = "#fff6e6"  # ✅ Haupthintergrund (warm)
-sidebar_bg = "#fff6e6"  # ✅ Sidebar EXAKT GLEICH - keine Unterschiede!
+sidebar_bg = "#fff6e6"  # ✅ Sidebar EXAKT GLEICH - GARANTIERT!
 
 # Bestehende Farben
 trust_color = "#011734"
@@ -39,8 +39,8 @@ suggestion_card_text = "#011734"
 
 st.markdown(f"""
 <style>
-    /* ⚠️ VERSION 3.4 AGGRESSIVE - CACHE BUSTER: {CACHE_BUSTER} ⚠️ */
-    /* ERZWINGT Sidebar-Farbe auf ALLEN Ebenen! */
+    /* ⚠️ VERSION 3.6 - Dashboard ZURÜCK - CACHE: {CACHE_BUSTER} ⚠️ */
+    /* ULTRA-AGGRESSIVE CSS + Dashboard nach Login */
     /* Main: {bg_color} | Sidebar: {sidebar_bg} */
     
     @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&display=swap');
@@ -51,7 +51,7 @@ st.markdown(f"""
     
     /* ✅ DEBUG: Zeige Farben als Text */
     body::before {{
-        content: "DEBUG v3.4 AGGRESSIVE: Main={bg_color} | Sidebar={sidebar_bg}";
+        content: "v3.6: Main={bg_color} | Sidebar={sidebar_bg} | Dashboard: ZURÜCK";
         position: fixed;
         top: 0;
         left: 50%;
@@ -70,30 +70,34 @@ st.markdown(f"""
         color: {text_primary};
     }}
     
-    /* ✅ NEU: Sidebar-Hintergrund - AGGRESSIVE VARIANTE */
+    /* ✅ ULTRA-AGGRESSIVE: Sidebar-Hintergrund auf ALLEN Ebenen */
+    [data-testid="stSidebar"],
+    [data-testid="stSidebar"] *,
+    [data-testid="stSidebar"] > div,
+    [data-testid="stSidebar"] > div > div,
+    [data-testid="stSidebar"] > div > div > div,
+    section[data-testid="stSidebar"],
+    section[data-testid="stSidebar"] *,
+    aside[data-testid="stSidebar"],
+    aside[data-testid="stSidebar"] * {{
+        background-color: {sidebar_bg} !important;
+        background: {sidebar_bg} !important;
+    }}
+    
+    /* ✅ Zusätzlich: Spezifisch für Sidebar Container */
     [data-testid="stSidebar"] {{
         background-color: {sidebar_bg} !important;
-        border-right: 2px solid {border_color};
+        background: {sidebar_bg} !important;
+        border-right: 2px solid {border_color} !important;
     }}
     
-    /* ✅ NEU: Sidebar-Content - ALLE Ebenen! */
-    [data-testid="stSidebar"] > div {{
-        background-color: {sidebar_bg} !important;
-    }}
-    
-    [data-testid="stSidebar"] > div > div {{
-        background-color: {sidebar_bg} !important;
-    }}
-    
-    [data-testid="stSidebar"] * {{
+    /* ✅ Alle Kinder der Sidebar transparent ODER gleiche Farbe */
+    [data-testid="stSidebar"] > * {{
         background-color: transparent !important;
     }}
     
-    [data-testid="stSidebar"],
-    [data-testid="stSidebar"] > div:first-child,
-    section[data-testid="stSidebar"] {{
+    [data-testid="stSidebar"] [data-testid="stSidebarNav"] {{
         background-color: {sidebar_bg} !important;
-        background: {sidebar_bg} !important;
     }}
     
     .legal-header {{
@@ -446,7 +450,7 @@ def show_dashboard():
                 <span class="beta-badge">Beta</span>
             </div>
             <div class="subtitle" style="margin-top: 0.5rem;">
-                Dein KI-Verordnung und DSGVO Plattform
+                Deine KI-Verordnung und DSGVO Plattform
             </div>
         </div>
     </div>
@@ -454,11 +458,40 @@ def show_dashboard():
     
     user = st.session_state.get("current_user", "User")
     st.markdown(f"### 👋 Willkommen, {user}!")
+    st.markdown("Wähle das gewünschte Tool:")
     
-    # ✅ DIREKTE WEITERLEITUNG ZUM ASSISTANT
-    # Statt Kacheln zu zeigen, gehe direkt zum Assistant
-    st.info("🚀 Sie werden zum Assistant weitergeleitet...")
-    switch_page("assistant")
+    # ✅ ZURÜCK: Tool-Kacheln
+    col1, col2 = st.columns(2, gap="large")
+    
+    with col1:
+        st.markdown("""
+        <div class="tool-card" onclick="window.location.href='#assistant'">
+            <div class="tool-icon">💬</div>
+            <div class="tool-title">KI-VO & DSGVO Assistant</div>
+            <div class="tool-description">
+                Stellen Sie Fragen zur KI-Verordnung und DSGVO. 
+                Erhalten Sie präzise Antworten mit Quellenangaben.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("🚀 Zum Assistant", key="goto_assistant", use_container_width=True):
+            switch_page("assistant")
+    
+    with col2:
+        st.markdown("""
+        <div class="tool-card tool-card-disabled">
+            <div class="tool-icon">🔍</div>
+            <div class="tool-title">Compliance Checker</div>
+            <div class="tool-description">
+                Prüfen Sie Ihre Dokumente und Prozesse auf 
+                Compliance mit KI-VO und DSGVO.
+            </div>
+            <div class="coming-soon">🚧 Coming Soon</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.button("🔍 Compliance Checker", key="goto_checker", disabled=True, use_container_width=True)
 
 # ============================================================================
 # SIDEBAR - ✅ ENTFERNT: Dashboard und Assistant Buttons
@@ -480,8 +513,14 @@ def show_sidebar(current_page="assistant"):
         
         st.divider()
         
-        # ✅ ENTFERNT: Kein "Dashboard" oder "Assistant" Button mehr
-        # ✅ ENTFERNT: Compliance Checker bleibt als "Coming Soon"
+        # ✅ ZURÜCK: Navigation mit Dashboard
+        st.markdown("### 📍 Navigation")
+        
+        if st.button("🏠 Dashboard", use_container_width=True, key="nav_dashboard"):
+            switch_page(None)
+        
+        if st.button("💬 Assistant", use_container_width=True, key="nav_assistant"):
+            switch_page("assistant")
         
         st.markdown("### 🔍 Tools")
         st.button("🔍 Compliance Checker", use_container_width=True, key="nav_checker", disabled=True)
@@ -523,8 +562,8 @@ def show_sidebar(current_page="assistant"):
             
             # ✅ VERSION-ANZEIGE 
             st.divider()
-            st.caption(f"🎨 Version 3.4 AGGRESSIVE | Cache: {CACHE_BUSTER[:8]}")
-            st.caption(f"📊 Main={bg_color}, Sidebar={sidebar_bg} (GLEICH!)")
+            st.caption(f"🎨 v3.6: Dashboard ZURÜCK | Cache: {CACHE_BUSTER[:8]}")
+            st.caption(f"📊 Main={bg_color}, Sidebar={sidebar_bg}")
             
             return api_key, filter_law, show_sources
         
@@ -652,13 +691,11 @@ def show_assistant_page():
     st.markdown('<div class="disclaimer">⚠️ TrustTroiAI dient ausschließlich Informationszwecken und ersetzt keine Rechtsberatung.</div>', unsafe_allow_html=True)
 
 # ============================================================================
-# ROUTING - ✅ DIREKT ZUM ASSISTANT
+# ROUTING - ✅ DASHBOARD NACH LOGIN
 # ============================================================================
 
-# ✅ VEREINFACHT: Keine Dashboard-Anzeige mehr, direkt zum Assistant
+# ✅ ZURÜCK: Dashboard-Anzeige nach Login
 if st.session_state.current_page is None:
-    # Setze direkt auf Assistant statt Dashboard zu zeigen
-    st.session_state.current_page = "assistant"
-    st.rerun()
+    show_dashboard()
 elif st.session_state.current_page == "assistant":
     show_assistant_page()
