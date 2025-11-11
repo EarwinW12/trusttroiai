@@ -1,6 +1,10 @@
 import streamlit as st
 from rag_backend import get_rag_backend
 import os
+import time
+# ✅ Cache-Busting: Erzwingt CSS-Reload
+st.markdown(f'<meta http-equiv="cache-control" content="no-cache, no-store, must-revalidate" />', unsafe_allow_html=True)
+st.markdown(f'<!-- Cache Buster: {time.time()} -->', unsafe_allow_html=True)
 
 st.set_page_config(
     page_title="TrustTroiAI",
