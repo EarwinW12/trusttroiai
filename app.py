@@ -20,9 +20,9 @@ CACHE_BUSTER = f"{time.time()}_{random.randint(1000, 9999)}"
 # CSS - LEGAL THEME - ✅ VERSION 3.1 - NEUE FARBEN
 # ============================================================================
 
-# ✅ FINALE Farben (v3.1 - GARANTIERT NEUE VERSION!)
+# ✅ FINALE Farben (v3.3 - IDENTISCH!)
 bg_color = "#fff6e6"  # ✅ Haupthintergrund (warm)
-sidebar_bg = "#fff6e6"  # ✅ GLEICHE FARBE wie Main! (Teste ob Änderungen wirken)
+sidebar_bg = "#fff6e6"  # ✅ Sidebar EXAKT GLEICH - keine Unterschiede!
 
 # Bestehende Farben
 trust_color = "#011734"
@@ -39,14 +39,29 @@ suggestion_card_text = "#011734"
 
 st.markdown(f"""
 <style>
-    /* ⚠️ VERSION 3.1 - CACHE BUSTER: {CACHE_BUSTER} ⚠️ */
-    /* WENN DU DAS SIEHST, IST DIE NEUE VERSION GELADEN! */
+    /* ⚠️ VERSION 3.3 - IDENTISCHE FARBEN - CACHE BUSTER: {CACHE_BUSTER} ⚠️ */
+    /* SIDEBAR = MAIN (Exakt gleich!) */
     /* Main: {bg_color} | Sidebar: {sidebar_bg} */
     
     @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&display=swap');
     
     * {{
         font-family: 'Times New Roman', 'Crimson Text', serif;
+    }}
+    
+    /* ✅ DEBUG: Zeige Farben als Text */
+    body::before {{
+        content: "DEBUG v3.3: Main={bg_color} | Sidebar={sidebar_bg}";
+        position: fixed;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        background: yellow;
+        color: black;
+        padding: 5px 10px;
+        z-index: 99999;
+        font-size: 12px;
+        font-weight: bold;
     }}
     
     /* ✅ NEU: Haupthintergrund */
@@ -491,10 +506,10 @@ def show_sidebar(current_page="assistant"):
                         stats = st.session_state.backend.get_memory_stats()
                         st.json(stats)
             
-            # ✅ VERSION-ANZEIGE (damit du siehst ob neue Version läuft)
+            # ✅ VERSION-ANZEIGE 
             st.divider()
-            st.caption(f"🎨 Version 3.1 | Cache: {CACHE_BUSTER[:8]}")
-            st.caption(f"📊 Farben: Main={bg_color}, Sidebar={sidebar_bg}")
+            st.caption(f"🎨 Version 3.3 IDENTISCH | Cache: {CACHE_BUSTER[:8]}")
+            st.caption(f"📊 Main={bg_color}, Sidebar={sidebar_bg} (GLEICH!)")
             
             return api_key, filter_law, show_sources
         
