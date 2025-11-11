@@ -20,9 +20,9 @@ CACHE_BUSTER = f"{time.time()}_{random.randint(1000, 9999)}"
 # CSS - LEGAL THEME - ✅ VERSION 3.1 - NEUE FARBEN
 # ============================================================================
 
-# ✅ FINALE Farben (v3.5 - ULTRA-AGGRESSIVE!)
+# ✅ FINALE Farben (v3.3 - IDENTISCH!)
 bg_color = "#fff6e6"  # ✅ Haupthintergrund (warm)
-sidebar_bg = "#fff6e6"  # ✅ Sidebar EXAKT GLEICH - GARANTIERT!
+sidebar_bg = "#fff6e6"  # ✅ Sidebar EXAKT GLEICH - keine Unterschiede!
 
 # Bestehende Farben
 trust_color = "#011734"
@@ -39,8 +39,8 @@ suggestion_card_text = "#011734"
 
 st.markdown(f"""
 <style>
-    /* ⚠️ VERSION 3.5 ULTRA-AGGRESSIVE - CACHE BUSTER: {CACHE_BUSTER} ⚠️ */
-    /* ÜBERSCHREIBT ALLES - GARANTIERT! */
+    /* ⚠️ VERSION 3.4 AGGRESSIVE - CACHE BUSTER: {CACHE_BUSTER} ⚠️ */
+    /* ERZWINGT Sidebar-Farbe auf ALLEN Ebenen! */
     /* Main: {bg_color} | Sidebar: {sidebar_bg} */
     
     @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&display=swap');
@@ -51,7 +51,7 @@ st.markdown(f"""
     
     /* ✅ DEBUG: Zeige Farben als Text */
     body::before {{
-        content: "DEBUG v3.5 ULTRA-AGGRESSIVE: Main={bg_color} | Sidebar={sidebar_bg}";
+        content: "DEBUG v3.4 AGGRESSIVE: Main={bg_color} | Sidebar={sidebar_bg}";
         position: fixed;
         top: 0;
         left: 50%;
@@ -70,34 +70,30 @@ st.markdown(f"""
         color: {text_primary};
     }}
     
-    /* ✅ ULTRA-AGGRESSIVE: Sidebar-Hintergrund auf ALLEN Ebenen */
-    [data-testid="stSidebar"],
-    [data-testid="stSidebar"] *,
-    [data-testid="stSidebar"] > div,
-    [data-testid="stSidebar"] > div > div,
-    [data-testid="stSidebar"] > div > div > div,
-    section[data-testid="stSidebar"],
-    section[data-testid="stSidebar"] *,
-    aside[data-testid="stSidebar"],
-    aside[data-testid="stSidebar"] * {{
-        background-color: {sidebar_bg} !important;
-        background: {sidebar_bg} !important;
-    }}
-    
-    /* ✅ Zusätzlich: Spezifisch für Sidebar Container */
+    /* ✅ NEU: Sidebar-Hintergrund - AGGRESSIVE VARIANTE */
     [data-testid="stSidebar"] {{
         background-color: {sidebar_bg} !important;
-        background: {sidebar_bg} !important;
-        border-right: 2px solid {border_color} !important;
+        border-right: 2px solid {border_color};
     }}
     
-    /* ✅ Alle Kinder der Sidebar transparent ODER gleiche Farbe */
-    [data-testid="stSidebar"] > * {{
+    /* ✅ NEU: Sidebar-Content - ALLE Ebenen! */
+    [data-testid="stSidebar"] > div {{
+        background-color: {sidebar_bg} !important;
+    }}
+    
+    [data-testid="stSidebar"] > div > div {{
+        background-color: {sidebar_bg} !important;
+    }}
+    
+    [data-testid="stSidebar"] * {{
         background-color: transparent !important;
     }}
     
-    [data-testid="stSidebar"] [data-testid="stSidebarNav"] {{
+    [data-testid="stSidebar"],
+    [data-testid="stSidebar"] > div:first-child,
+    section[data-testid="stSidebar"] {{
         background-color: {sidebar_bg} !important;
+        background: {sidebar_bg} !important;
     }}
     
     .legal-header {{
@@ -527,8 +523,8 @@ def show_sidebar(current_page="assistant"):
             
             # ✅ VERSION-ANZEIGE 
             st.divider()
-            st.caption(f"🎨 Version 3.5 ULTRA-AGGRESSIVE | Cache: {CACHE_BUSTER[:8]}")
-            st.caption(f"📊 Main={bg_color}, Sidebar={sidebar_bg} (GARANTIERT GLEICH!)")
+            st.caption(f"🎨 Version 3.4 AGGRESSIVE | Cache: {CACHE_BUSTER[:8]}")
+            st.caption(f"📊 Main={bg_color}, Sidebar={sidebar_bg} (GLEICH!)")
             
             return api_key, filter_law, show_sources
         
