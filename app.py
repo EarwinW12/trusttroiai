@@ -20,9 +20,9 @@ CACHE_BUSTER = f"{time.time()}_{random.randint(1000, 9999)}"
 # CSS - LEGAL THEME - ✅ VERSION 3.1 - NEUE FARBEN
 # ============================================================================
 
-# ✅ FINALE Farben (v3.6 - ULTRA-AGGRESSIVE + Dashboard zurück!)
+# ✅ FINALE Farben (v3.7 - Buttons gefixt!)
 bg_color = "#fff6e6"  # ✅ Haupthintergrund (warm)
-sidebar_bg = "#fff6e6"  # ✅ Sidebar EXAKT GLEICH - GARANTIERT!
+sidebar_bg = "#fff6e6"  # ✅ Sidebar EXAKT GLEICH
 
 # Bestehende Farben
 trust_color = "#011734"
@@ -51,7 +51,7 @@ st.markdown(f"""
     
     /* ✅ DEBUG: Zeige Farben als Text */
     body::before {{
-        content: "v3.6: Main={bg_color} | Sidebar={sidebar_bg} | Dashboard: ZURÜCK";
+        content: "v3.7: Buttons GEFIXT | Main={bg_color} | Sidebar={sidebar_bg}";
         position: fixed;
         top: 0;
         left: 50%;
@@ -71,15 +71,13 @@ st.markdown(f"""
     }}
     
     /* ✅ ULTRA-AGGRESSIVE: Sidebar-Hintergrund auf ALLEN Ebenen */
+    /* ABER: Schließe Buttons und Widgets aus! */
     [data-testid="stSidebar"],
-    [data-testid="stSidebar"] *,
     [data-testid="stSidebar"] > div,
     [data-testid="stSidebar"] > div > div,
     [data-testid="stSidebar"] > div > div > div,
     section[data-testid="stSidebar"],
-    section[data-testid="stSidebar"] *,
-    aside[data-testid="stSidebar"],
-    aside[data-testid="stSidebar"] * {{
+    aside[data-testid="stSidebar"] {{
         background-color: {sidebar_bg} !important;
         background: {sidebar_bg} !important;
     }}
@@ -91,9 +89,14 @@ st.markdown(f"""
         border-right: 2px solid {border_color} !important;
     }}
     
-    /* ✅ Alle Kinder der Sidebar transparent ODER gleiche Farbe */
-    [data-testid="stSidebar"] > * {{
-        background-color: transparent !important;
+    /* ✅ AUSNAHME: Buttons, Inputs und Widgets NICHT transparent! */
+    [data-testid="stSidebar"] .stButton > button,
+    [data-testid="stSidebar"] .stSelectbox,
+    [data-testid="stSidebar"] .stCheckbox,
+    [data-testid="stSidebar"] .stTextInput,
+    [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {{
+        background-color: initial !important;
+        background: initial !important;
     }}
     
     [data-testid="stSidebar"] [data-testid="stSidebarNav"] {{
@@ -562,7 +565,7 @@ def show_sidebar(current_page="assistant"):
             
             # ✅ VERSION-ANZEIGE 
             st.divider()
-            st.caption(f"🎨 v3.6: Dashboard ZURÜCK | Cache: {CACHE_BUSTER[:8]}")
+            st.caption(f"🎨 v3.7: Buttons GEFIXT | Cache: {CACHE_BUSTER[:8]}")
             st.caption(f"📊 Main={bg_color}, Sidebar={sidebar_bg}")
             
             return api_key, filter_law, show_sources
